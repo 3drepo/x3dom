@@ -12,7 +12,7 @@ x3dom.registerNodeType(
     "Inline",
     "Networking",
     defineClass(x3dom.nodeTypes.X3DGroupingNode,
-        
+
         /**
          * Constructor for Inline
          * @constructs x3dom.nodeTypes.Inline
@@ -70,7 +70,7 @@ x3dom.registerNodeType(
             this.initDone = false;
             this.count = 0;
             this.numRetries = x3dom.nodeTypes.Inline.MaximumRetries;
-        
+
         },
         {
             fieldChanged: function (fieldName)
@@ -163,9 +163,9 @@ x3dom.registerNodeType(
                         {
                             that.count++;
                             var refreshTime = +xhr.getResponseHeader("Refresh") || 5;
-                            x3dom.debug.logInfo('XHR status: ' + xhr.status + ' - Await Transcoding (' + that.count + '/' + that.numRetries + '): ' + 
+                            x3dom.debug.logInfo('XHR status: ' + xhr.status + ' - Await Transcoding (' + that.count + '/' + that.numRetries + '): ' +
                                                 'Next request in ' + refreshTime + ' seconds');
-                      
+
                             window.setTimeout(function() {
                                 that._nameSpace.doc.downloadCount -= 1;
                                 that.loadInline();
@@ -174,7 +174,7 @@ x3dom.registerNodeType(
                         }
                         else
                         {
-                            x3dom.debug.logError('XHR status: ' + xhr.status + ' - Await Transcoding (' + that.count + '/' + that.numRetries + '): ' + 
+                            x3dom.debug.logError('XHR status: ' + xhr.status + ' - Await Transcoding (' + that.count + '/' + that.numRetries + '): ' +
                                                  'No Retries left');
                             that._nameSpace.doc.downloadCount -= 1;
                             that.count = 0;
@@ -229,7 +229,8 @@ x3dom.registerNodeType(
 
                         if(that._vf.nameSpaceName.length != 0)
                         {
-                            Array.forEach ( inlScene.childNodes, function (childDomNode)
+							var nodeList = [].concat.apply([], inlScene.childNodes);
+                            Array.forEach ( nodeList, function (childDomNode)
                             {
                                 if(childDomNode instanceof Element)
                                 {
