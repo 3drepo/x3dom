@@ -1407,13 +1407,14 @@ x3dom.Viewarea.prototype.initTurnTable = function(navi, flyTo)
     var currViewMat = this.getViewMatrix();
 
     var viewpoint = this._scene.getViewpoint();
+    var trans	 = viewpoint.getCurrentTransform();
     var center = x3dom.fields.SFVec3f.copy(viewpoint.getCenterOfRotation());
 
     this._flyMat = currViewMat.inverse();
 
     this._from = this._flyMat.e3();
     //this._at = this._from.subtract(this._flyMat.e2());
-    this._at = center;
+    this._at = trans.multMatrixVec(center);
     this._up = this._flyMat.e1();
 
     this._flyMat = x3dom.fields.SFMatrix4f.lookAt(this._from, this._at, this._up);
