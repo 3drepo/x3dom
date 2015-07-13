@@ -131,7 +131,7 @@ x3dom.Viewarea = function (document, scene) {
      * @protected
      */
     this._height = 300;
-    
+
     this._dx = 0;
     this._dy = 0;
     this._lastX = -1;
@@ -142,10 +142,10 @@ x3dom.Viewarea = function (document, scene) {
 
     this._points = 0;   // old render mode flag (but think of better name!)
     this._numRenderedNodes = 0;
-    
+
     this._pick = new x3dom.fields.SFVec3f(0, 0, 0);
     this._pickNorm = new x3dom.fields.SFVec3f(0, 0, 1);
-    
+
     this._isAnimating = false;
     this._isMoving = false;
     this._lastTS = 0;
@@ -191,7 +191,7 @@ x3dom.Viewarea.prototype.tick = function(timeStamp)
         else {
             this._mixer._beginTime = 0;
             this._mixer._endTime = 0;
-            
+
             this._scene.getViewpoint().setView(this._mixer._beginMat);
         }
     }
@@ -247,7 +247,7 @@ x3dom.Viewarea.prototype.navigateTo = function(timeStamp)
     var navi = this._scene.getNavigationInfo();
     var navType = navi.getType();
     var savedPickingInfo = null;
-    
+
     var needNavAnim = (this._currentInputType == x3dom.InputTypes.NAVIGATION) &&
                       ( navType === "game" ||
                         (this._lastButton > 0 &&
@@ -255,9 +255,9 @@ x3dom.Viewarea.prototype.navigateTo = function(timeStamp)
                          navType === "walk" ||
                          navType === "helicopter" ||
                          navType.substr(0, 5) === "looka")) );
-    
+
     this._deltaT = timeStamp - this._lastTS;
-    
+
     var removeZeroMargin = function(val, offset) {
         if (val > 0) {
             if (val <= offset) {
@@ -273,7 +273,7 @@ x3dom.Viewarea.prototype.navigateTo = function(timeStamp)
             }
         }
     };
-    
+
     // slightly increasing slope function
     var humanizeDiff = function(scale, diff) {
         return ((diff < 0) ? -1 : 1 ) * Math.pow(scale * Math.abs(diff), 1.65 /*lower is easier on the novice*/);
@@ -305,38 +305,38 @@ x3dom.Viewarea.prototype.navigateTo = function(timeStamp)
             avatarHeight = navi._vf.avatarSize[1];
             avatarKnee = navi._vf.avatarSize[2];
         }
-        
-        
+
+
 
         // get current view matrix
         var currViewMat = this.getViewMatrix();
         var dist = 0;
-        
+
         // estimate one screen size for motion puposes so navigation behaviour
         // is less dependent on screen geometry. This makes no sense for very
         // anisotropic cases, so it should probably be configurable.
         var screenSize = Math.min(this._width, this._height);
         var rdeltaX = removeZeroMargin((this._pressX - this._lastX) / screenSize, 0.01);
         var rdeltaY = removeZeroMargin((this._pressY - this._lastY) / screenSize, 0.01);
-        
+
         var userXdiff = humanizeDiff(1, rdeltaX);
         var userYdiff = humanizeDiff(1, rdeltaY);
 
         // check if forwards or backwards (on right button)
         var step = (this._lastButton & 2) ? -1 : 1;
         step *= (this._deltaT * navi._vf.speed);
-        
+
         // factor in delta time and the nav speed setting
         var userXstep = this._deltaT * navi._vf.speed * userXdiff;
         var userYstep = this._deltaT * navi._vf.speed * userYdiff;
-        
+
         var phi = Math.PI * this._deltaT * userXdiff;
         var theta = Math.PI * this._deltaT * userYdiff;
-        
+
         if (this._needNavigationMatrixUpdate === true)
         {
             this._needNavigationMatrixUpdate = false;
-          
+
             // reset examine matrices to identity
             this._rotMat = x3dom.fields.SFMatrix4f.identity();
             this._transMat = x3dom.fields.SFMatrix4f.identity();
@@ -345,14 +345,14 @@ x3dom.Viewarea.prototype.navigateTo = function(timeStamp)
             var angleX = 0;
             var angleY = Math.asin(currViewMat._02);
             var C = Math.cos(angleY);
-            
+
             if (Math.abs(C) > 0.0001) {
                 angleX = Math.atan2(-currViewMat._12 / C, currViewMat._22 / C);
             }
 
             // too many inversions here can lead to distortions
             this._flyMat = currViewMat.inverse();
-            
+
             this._from = this._flyMat.e3();
             this._at = this._from.subtract(this._flyMat.e2());
 
@@ -392,7 +392,7 @@ x3dom.Viewarea.prototype.navigateTo = function(timeStamp)
             if (this._pitch <= -89) this._pitch = -89;
             if (this._yaw >=  360) this._yaw -= 360;
             if (this._yaw < 0) this._yaw = 360 + this._yaw;
-            
+
             this._dx = 0;
             this._dy = 0;
 
@@ -439,7 +439,7 @@ x3dom.Viewarea.prototype.navigateTo = function(timeStamp)
         else if (navType === "helicopter") {
             var typeParams = navi.getTypeParams();
 
-            
+
 
             if (this._lastButton & 2) // up/down levelling
             {
@@ -454,7 +454,7 @@ x3dom.Viewarea.prototype.navigateTo = function(timeStamp)
             else {
                 step = 0;
             }
-            
+
             theta = typeParams[0];
             this._from.y = typeParams[1];
             this._at.y = this._from.y;
@@ -584,7 +584,7 @@ x3dom.Viewarea.prototype.navigateTo = function(timeStamp)
             }
             this._pickingInfo.pickObj = null;
         }
-        
+
         this._flyMat = x3dom.fields.SFMatrix4f.lookAt(this._from, this._at, up);
 
         this._scene.getViewpoint().setView(this._flyMat.inverse());
@@ -593,7 +593,7 @@ x3dom.Viewarea.prototype.navigateTo = function(timeStamp)
         if( savedPickingInfo !== null ) {
 
             this._pickingInfo = savedPickingInfo;
-            
+
         }
     }
 
@@ -710,7 +710,7 @@ x3dom.Viewarea.prototype.animateTo = function(target, prev, dur)
 
             this._mixer.setBeginMatrix (prev);
             this._mixer.setEndMatrix (target);
-            
+
             this._scene.getViewpoint().setView(prev);
         }
         else {
@@ -753,7 +753,7 @@ x3dom.Viewarea.prototype.getLightsShadow = function () {
 x3dom.Viewarea.prototype.updateSpecialNavigation = function (viewpoint, mat_viewpoint) {
     var navi = this._scene.getNavigationInfo();
     var navType = navi.getType();
-    
+
     // helicopter mode needs to manipulate view matrix specially
     if (navType == "helicopter" && !navi._heliUpdated)
     {
@@ -795,9 +795,9 @@ x3dom.Viewarea.prototype.getViewpointMatrix = function ()
 {
     var viewpoint = this._scene.getViewpoint();
     var mat_viewpoint = viewpoint.getCurrentTransform();
-    
+
     this.updateSpecialNavigation(viewpoint, mat_viewpoint);
-    
+
     return viewpoint.getViewMatrix().mult(mat_viewpoint.inverse());
 };
 
@@ -881,36 +881,36 @@ x3dom.Viewarea.prototype.getWCtoLCMatrix = function(lMat)
  * @return {Array} six WCtoLCMatrices
  */
 x3dom.Viewarea.prototype.getWCtoLCMatricesPointLight = function(view, lightNode, mat_proj)
-{	 
+{
 	var zNear = lightNode._vf.zNear;
 	var zFar = lightNode._vf.zFar;
-	
+
 	var proj = this.getLightProjectionMatrix(view, zNear, zFar, false, mat_proj);
-	
+
 	//set projection matrix to 90 degrees FOV (vertical and horizontal)
 	proj._00 = 1;
 	proj._11 = 1;
-	
+
 	var matrices = [];
-	
+
 	//create six matrices to cover all directions of point light
 	matrices[0] = proj.mult(view);
-		
+
 	var rotationMatrix;
-	
+
 	//y-rotation
-	for (var i=1; i<=3; i++){	
+	for (var i=1; i<=3; i++){
 		rotationMatrix = x3dom.fields.SFMatrix4f.rotationY(i*Math.PI/2);
 		matrices[i] = proj.mult(rotationMatrix.mult(view));
 	}
-	
+
 	//x-rotation
 	rotationMatrix = x3dom.fields.SFMatrix4f.rotationX(Math.PI/2);
 	matrices[4] = proj.mult(rotationMatrix.mult(view));
-	
+
 	rotationMatrix = x3dom.fields.SFMatrix4f.rotationX(3*Math.PI/2);
 	matrices[5] = proj.mult(rotationMatrix.mult(view));
-	
+
     return matrices;
 };
 
@@ -926,18 +926,18 @@ x3dom.Viewarea.prototype.getWCtoLCMatricesCascaded = function(view, lightNode, m
 	var isSpotLight = x3dom.isa(lightNode, x3dom.nodeTypes.SpotLight);
 	var zNear = lightNode._vf.zNear;
 	var zFar = lightNode._vf.zFar;
-	
+
 	var proj = this.getLightProjectionMatrix(view, zNear, zFar, true, mat_proj);
-	
+
 	if (isSpotLight){
 		//set FOV to 90 degrees
 		proj._00 = 1;
 		proj._11 = 1;
-	}	
-	
+	}
+
 	//get view projection matrix
-	var viewProj = proj.mult(view);	
-	
+	var viewProj = proj.mult(view);
+
 	var matrices = [];
 
 	if (numCascades == 1){
@@ -945,48 +945,48 @@ x3dom.Viewarea.prototype.getWCtoLCMatricesCascaded = function(view, lightNode, m
 		matrices[0] = viewProj;
 		return matrices;
 	}
-	
+
 	//compute split positions of view frustum
 	var cascadeSplits = this.getShadowSplitDepths(numCascades, splitFactor, splitOffset, true, mat_proj);
-	
+
 	//calculate fitting matrices and multiply with view projection
 	for (var i=0; i<numCascades; i++){
 		var fittingMat = this.getLightFittingMatrix(viewProj, cascadeSplits[i], cascadeSplits[i+1], mat_proj);
 		matrices[i] = fittingMat.mult(viewProj);
-	}	
-	
+	}
+
 	return matrices;
 };
 
 x3dom.Viewarea.prototype.getLightProjectionMatrix = function(lMat, zNear, zFar, highPrecision, mat_proj)
 {
     var proj = x3dom.fields.SFMatrix4f.copy(mat_proj);
-	
+
 	if (!highPrecision || zNear > 0 || zFar > 0) {
 		//replace near and far plane of projection matrix
 		//by values adapted to the light position
-		
+
 		var lightPos = lMat.inverse().e3();
-		
+
 		var nearScale = 0.8;
 		var farScale = 1.2;
-		
+
 		var min = x3dom.fields.SFVec3f.copy(this._scene._lastMin);
-		var max = x3dom.fields.SFVec3f.copy(this._scene._lastMax); 
+		var max = x3dom.fields.SFVec3f.copy(this._scene._lastMax);
 
 		var dia = max.subtract(min);
 		var sRad = dia.length() / 2;
-		
+
 		var sCenter = min.add(dia.multiply(0.5));
 		var vDist = (lightPos.subtract(sCenter)).length();
-		
+
 		var near, far;
-		
+
 		if (sRad) {
 			if (vDist > sRad)
-				near = (vDist - sRad) * nearScale; 
+				near = (vDist - sRad) * nearScale;
 			else
-				near = 1;                           
+				near = 1;
 			far = (vDist + sRad) * farScale;
 		}
 		if (zNear > 0) near = zNear;
@@ -994,13 +994,13 @@ x3dom.Viewarea.prototype.getLightProjectionMatrix = function(lMat, zNear, zFar, 
 
 		proj._22 = -(far+near)/(far-near);
 		proj._23 = -2.0*far*near / (far-near);
-		
+
 		return proj;
 	}
     else {
 		//should be more accurate, but also more expensive
 		var cropMatrix = this.getLightCropMatrix(proj.mult(lMat));
-		
+
 		return cropMatrix.mult(proj);
 	}
 };
@@ -1026,7 +1026,7 @@ x3dom.Viewarea.prototype.getViewfrustum = function(clipMat)
         if (arguments.length == 0) {
             var proj = this.getProjectionMatrix();
             var view = this.getViewMatrix();
-    
+
             return new x3dom.fields.FrustumVolume(proj.mult(view));
         }
         else {
@@ -1298,14 +1298,14 @@ x3dom.Viewarea.prototype.checkEvents = function (obj, x, y, buttonState, eventTy
 
     try {
         var anObj = obj;
-        
+
         if ( anObj && anObj._xmlNode && anObj._cf.geometry &&
              !anObj._xmlNode[eventType] &&
              !anObj._xmlNode.hasAttribute(eventType) &&
              !anObj._listeners[event.type]) {
             anObj = anObj._cf.geometry.node;
         }
-        
+
         if (anObj && that.callEvtHandler(anObj, eventType, event) === true) {
             needRecurse = false;
         }
@@ -1618,9 +1618,9 @@ x3dom.Viewarea.prototype.onDoubleClick = function (x, y)
         this._doc._x3dElem.getAttribute('disableDoubleClick') === 'true') {
         return;
     }
-    
+
     var navi = this._scene.getNavigationInfo();
-    
+
     if (navi.getType() == "none") {
         return;
     }
@@ -1645,10 +1645,10 @@ x3dom.Viewarea.prototype.onDoubleClick = function (x, y)
     var norm = mat.e0().cross(up).normalize();
     // get distance between look-at point and viewing plane
     var dist = norm.dot(this._pick.subtract(from));
-    
+
     from = at.addScaled(norm, -dist);
     mat = x3dom.fields.SFMatrix4f.lookAt(from, at, up);
-    
+
     x3dom.debug.logInfo("New camera position:  " + from);
     this.animateTo(mat.inverse(), viewpoint);
 };
@@ -1851,9 +1851,9 @@ x3dom.Viewarea.prototype.onDrag = function (x, y, buttonState)
                 var lastDir  = cor.subtract(this._from);
                 var lastDirL = lastDir.length();
                 lastDir = lastDir.normalize();
-                
+
                 var zoomAmount = d * (dx + dy) / this._height;
-                
+
                 // FIXME: very experimental HACK to switch between both versions (clamp to CoR and CoR translation)
                 if (navi._vf.typeParams.length >= 5 && navi._vf.typeParams[4] > 0)
                 {
@@ -1875,9 +1875,6 @@ x3dom.Viewarea.prototype.onDrag = function (x, y, buttonState)
                     // move along viewing ray, scaled with zoom factor
                     this._from = this._from.addScaled(lastDir, zoomAmount);
                 }
-
-                // move along viewing ray, scaled with zoom factor
-                this._from = this._from.addScaled(lastDir, zoomAmount);
 
                 // update camera matrix with lookAt() and invert again
                 this._flyMat = x3dom.fields.SFMatrix4f.lookAt(this._from, cor, this._up);
@@ -2046,7 +2043,7 @@ x3dom.Viewarea.prototype.getRenderMode = function()
 
 
 x3dom.Viewarea.prototype.getShadowedLights = function()
-{	
+{
 	var shadowedLights = [];
 	var shadowIndex = 0;
 	var slights = this.getLights();
@@ -2073,49 +2070,49 @@ x3dom.Viewarea.prototype.getShadowSplitDepths = function(numCascades, splitFacto
 {
 	var logSplit;
 	var practSplit = [];
-	
+
 	var viewPoint = this._scene.getViewpoint();
-	
+
 	var zNear = viewPoint.getNear();
 	var zFar = viewPoint.getFar();
 
 	practSplit[0] = zNear;
-	
+
 	//pseudo near plane for bigger cascades near camera
 	zNear = zNear + splitOffset*(zFar-zNear)/10;
-	
+
 	//calculate split depths according to "practical split scheme"
 	for (var i=1;i<numCascades;i++){
 		logSplit = zNear * Math.pow((zFar / zNear), i / numCascades);
 		practSplit[i] = splitFactor * logSplit + (1 - splitFactor) * (zNear + i / (numCascades * (zNear-zFar)));
 	}
 	practSplit[numCascades] = zFar;
-	
+
 	//return in view coords
 	if (!postProject)
         return practSplit;
-	
+
 	//return in post projective coords
 	var postProj = [];
-	
+
 	for (var j=0; j<=numCascades; j++){
 		postProj[j] = mat_proj.multFullMatrixPnt(new x3dom.fields.SFVec3f(0,0,-practSplit[j])).z;
 	}
-	
+
 	return postProj;
 };
 
 
 /*
- * calculate a matrix to enhance the placement of 
+ * calculate a matrix to enhance the placement of
  * the near and far planes of the light projection matrix
 */
 x3dom.Viewarea.prototype.getLightCropMatrix = function(WCToLCMatrix)
-{	
+{
 	//get corner points of scene bounds
 	var sceneMin = x3dom.fields.SFVec3f.copy(this._scene._lastMin);
 	var sceneMax = x3dom.fields.SFVec3f.copy(this._scene._lastMax);
-	
+
 	var sceneCorners = [];
 	sceneCorners[0] = new x3dom.fields.SFVec3f(sceneMin.x, sceneMin.y, sceneMin.z);
 	sceneCorners[1] = new x3dom.fields.SFVec3f(sceneMin.x, sceneMin.y, sceneMax.z);
@@ -2125,36 +2122,36 @@ x3dom.Viewarea.prototype.getLightCropMatrix = function(WCToLCMatrix)
 	sceneCorners[5] = new x3dom.fields.SFVec3f(sceneMax.x, sceneMin.y, sceneMax.z);
 	sceneCorners[6] = new x3dom.fields.SFVec3f(sceneMax.x, sceneMax.y, sceneMin.z);
 	sceneCorners[7] = new x3dom.fields.SFVec3f(sceneMax.x, sceneMax.y, sceneMax.z);
-	
+
 	//transform scene bounds into light space
     var i;
 	for (i=0; i<8; i++){
 		sceneCorners[i] = WCToLCMatrix.multFullMatrixPnt(sceneCorners[i]);
 	}
-	
+
 	//determine min and max values in light space
 	var minScene = x3dom.fields.SFVec3f.copy(sceneCorners[0]);
 	var maxScene = x3dom.fields.SFVec3f.copy(sceneCorners[0]);
-	
+
 	for (i=1; i<8; i++){
-		minScene.z = Math.min(sceneCorners[i].z, minScene.z); 
-		maxScene.z = Math.max(sceneCorners[i].z, maxScene.z); 
+		minScene.z = Math.min(sceneCorners[i].z, minScene.z);
+		maxScene.z = Math.max(sceneCorners[i].z, maxScene.z);
 	}
 
 	var scaleZ = 2.0 / (maxScene.z - minScene.z);
-	var offsetZ = -(scaleZ * (maxScene.z + minScene.z)) / 2.0;	
-		
+	var offsetZ = -(scaleZ * (maxScene.z + minScene.z)) / 2.0;
+
 	//var scaleZ = 1.0 / (maxScene.z - minScene.z);
 	//var offsetZ = -minScene.z * scaleZ;
 
 	var cropMatrix = x3dom.fields.SFMatrix4f.identity();
-	
+
 	cropMatrix._22 = scaleZ;
-	cropMatrix._23 = offsetZ;	
-	
-	return cropMatrix;	
+	cropMatrix._23 = offsetZ;
+
+	return cropMatrix;
 };
-	
+
 
 /*
  * Calculate a matrix to fit the given wctolc-matrix to the split boundaries
@@ -2164,7 +2161,7 @@ x3dom.Viewarea.prototype.getLightFittingMatrix = function(WCToLCMatrix, zNear, z
 	var mat_view = this.getViewMatrix();
 	var mat_view_proj = mat_proj.mult(mat_view);
 	var mat_view_proj_inverse = mat_view_proj.inverse();
-	
+
 	//define view frustum corner points in post perspective view space
 	var frustumCorners = [];
 	frustumCorners[0] = new x3dom.fields.SFVec3f(-1, -1, zFar);
@@ -2175,7 +2172,7 @@ x3dom.Viewarea.prototype.getLightFittingMatrix = function(WCToLCMatrix, zNear, z
 	frustumCorners[5] = new x3dom.fields.SFVec3f( 1, -1, zNear);
 	frustumCorners[6] = new x3dom.fields.SFVec3f( 1,  1, zFar);
 	frustumCorners[7] = new x3dom.fields.SFVec3f( 1,  1, zNear);
-	
+
 
 	//transform corner points into post perspective light space
     var i;
@@ -2183,22 +2180,22 @@ x3dom.Viewarea.prototype.getLightFittingMatrix = function(WCToLCMatrix, zNear, z
 		frustumCorners[i] = mat_view_proj_inverse.multFullMatrixPnt(frustumCorners[i]);
 		frustumCorners[i] = WCToLCMatrix.multFullMatrixPnt(frustumCorners[i]);
 	}
-	
+
 	//calculate minimum and maximum values
 	var minFrustum = x3dom.fields.SFVec3f.copy(frustumCorners[0]);
 	var maxFrustum = x3dom.fields.SFVec3f.copy(frustumCorners[0]);
 
 	for (i=1; i<8; i++){
-		minFrustum.x = Math.min(frustumCorners[i].x, minFrustum.x); 
+		minFrustum.x = Math.min(frustumCorners[i].x, minFrustum.x);
 		minFrustum.y = Math.min(frustumCorners[i].y, minFrustum.y);
-		minFrustum.z = Math.min(frustumCorners[i].z, minFrustum.z); 
-		
-		maxFrustum.x = Math.max(frustumCorners[i].x, maxFrustum.x); 
-		maxFrustum.y = Math.max(frustumCorners[i].y, maxFrustum.y); 
-		maxFrustum.z = Math.max(frustumCorners[i].z, maxFrustum.z); 
+		minFrustum.z = Math.min(frustumCorners[i].z, minFrustum.z);
+
+		maxFrustum.x = Math.max(frustumCorners[i].x, maxFrustum.x);
+		maxFrustum.y = Math.max(frustumCorners[i].y, maxFrustum.y);
+		maxFrustum.z = Math.max(frustumCorners[i].z, maxFrustum.z);
 	}
-	
-	
+
+
 	//clip values to box (-1,-1,-1),(1,1,1)
 	function clip(min,max)
     {
@@ -2208,7 +2205,7 @@ x3dom.Viewarea.prototype.getLightFittingMatrix = function(WCToLCMatrix, zNear, z
 		var xMax = max.x;
 		var yMax = max.y;
 		var zMax = max.z;
-		
+
 		if (xMin > 1.0 || xMax < -1.0) {
 			xMin = -1.0;
 			xMax =  1.0;
@@ -2216,7 +2213,7 @@ x3dom.Viewarea.prototype.getLightFittingMatrix = function(WCToLCMatrix, zNear, z
 			xMin = Math.max(xMin,-1.0);
 			xMax = Math.min(xMax, 1.0);
 		}
-		
+
 		if (yMin > 1.0 || yMax < -1.0) {
 			yMin = -1.0;
 			yMax =  1.0;
@@ -2224,7 +2221,7 @@ x3dom.Viewarea.prototype.getLightFittingMatrix = function(WCToLCMatrix, zNear, z
 			yMin = Math.max(yMin,-1.0);
 			yMax = Math.min(yMax, 1.0);
 		}
-					   
+
 		if (zMin > 1.0 || zMax < -1.0){
 			zMin = -1.0;
 			zMax = 1.0;
@@ -2237,7 +2234,7 @@ x3dom.Viewarea.prototype.getLightFittingMatrix = function(WCToLCMatrix, zNear, z
 
 		return new x3dom.fields.BoxVolume(minValues,maxValues);
 	}
-	
+
 	var frustumBB = clip(minFrustum, maxFrustum);
 
 	//define fitting matrix
@@ -2245,9 +2242,9 @@ x3dom.Viewarea.prototype.getLightFittingMatrix = function(WCToLCMatrix, zNear, z
 	var scaleY = 2.0 / (frustumBB.max.y - frustumBB.min.y);
 	var offsetX = -(scaleX * (frustumBB.max.x + frustumBB.min.x)) / 2.0;
 	var offsetY = -(scaleY * (frustumBB.max.y + frustumBB.min.y)) / 2.0;
-	
+
 	var fittingMatrix = x3dom.fields.SFMatrix4f.identity();
-	
+
 	fittingMatrix._00 = scaleX;
 	fittingMatrix._11 = scaleY;
 	fittingMatrix._03 = offsetX;
