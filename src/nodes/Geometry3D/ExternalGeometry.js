@@ -90,11 +90,26 @@ x3dom.registerNodeType(
                 //post request
                 xhr = new XMLHttpRequest();
 
-                xhr.open("GET", shape._nameSpace.getURL(this._vf['url'][this._currentURLIdx]), true);
+                var url = shape._nameSpace.getURL(this._vf['url'][this._currentURLIdx]);
+                var urlParts = url.split("#");
+                var requestedMesh = "";
+
+                if (urlParts.length == 2)
+                {
+                	// TODO: currently, only one mesh can be selected
+                	url = urlParts[0];
+                	requestedMesh = urlParts[1];
+                } else if (urlParts.length > 2) {
+                	url = urlParts[0];
+                }
+
+                xhr.open("GET", url, true);
 
                 xhr.responseType = "arraybuffer";
 
                 xhr.send(null);
+
+                this.url = url;
 
                 xhr.onerror = function() {
                     x3dom.debug.logError("Unable to load SRC data from URL \"" + that._vf['url'][that._currentURLIdx] + "\"");
@@ -127,7 +142,13 @@ x3dom.registerNodeType(
                             //currently, we assume ASCII JSON encoding
                             try
                             {
-                                srcHeaderObj = JSON.parse(String.fromCharCode.apply(null, srcHeaderView));
+                                srcHeaderObj = "";
+                                
+                                for (var i = 0; i < srcHeaderView.length; i++) {
+                                    srcHeaderObj += String.fromCharCode(srcHeaderView[i]);
+                                }
+
+                                srcHeaderObj = JSON.parse(srcHeaderObj);
                             }
                             catch (exc)
                             {
@@ -135,7 +156,7 @@ x3dom.registerNodeType(
                                 return;
                             }
 
-                            that._updateRenderDataFromSRC(shape, shaderProgram, gl, srcHeaderObj, srcBodyView);
+                            that._updateRenderDataFromSRC(shape, shaderProgram, gl, srcHeaderObj, srcBodyView, requestedMesh);
                         }
                         else
                         {
@@ -195,9 +216,10 @@ x3dom.registerNodeType(
              * @param {Object} gl - WebGL context
              * @param {Object} srcHeaderObj - the JS object which was created from the SRC header
              * @param {Uint8Array} srcBodyView - a typed array view on the body of the SRC file
+             * @param {String} requestedMesh - a string containing the name of mesh to be rendered
              * @private
              */
-            _updateRenderDataFromSRC: function(shape, shaderProgram, gl, srcHeaderObj, srcBodyView)
+            _updateRenderDataFromSRC: function(shape, shaderProgram, gl, srcHeaderObj, srcBodyView, requestedMesh)
             {
                 var INDEX_BUFFER_IDX    = 0;
                 var POSITION_BUFFER_IDX = 1;
@@ -224,6 +246,65 @@ x3dom.registerNodeType(
                 //the meta data object is currently unused
                 //var metadataObj = srcHeaderObj["meta"];
 
+
+                // If we are requesting only a single mesh from a large file
+                // we only need to load certain attributes and buffers
+                if (requestedMesh)
+                {
+                	if (!meshes[requestedMesh])
+                	{
+                		x3dom.debug.logError("Requested mesh " + requestedMesh + " does not exist in SRC file." +
+                			"Continuing with all meshes.");
+                	} else {
+                		var reqMeshAttributes = [];
+                        for(key in meshes[requestedMesh]["attributes"])
+                            reqMeshAttributes.push(meshes[requestedMesh]["attributes"][key]);
+
+                		var bufferViewsIDS = Object.keys(srcHeaderObj["bufferViews"]);
+                		var requestedBuffer = false;
+                		var reqIndexViewID = meshes[requestedMesh]["indices"];
+
+                		// Check all buffer views for use by the requested mesh
+                		for (i in bufferViewsIDS)
+                		{
+                            var bufferViewID = bufferViewsIDS[i];
+
+                			// Check all attributes in the requested mesh
+                			for (j in reqMeshAttributes)
+                			{
+                                var reqAttributeID = reqMeshAttributes[j];
+
+                				// Does this attribute require this buffer view ?
+                				if (bufferViewID === attributeViews[reqAttributeID]["bufferView"])
+                				{
+                					requestedBuffer = true;
+                					break;
+                				}
+                			}
+
+                            if (bufferViewID == indexViews[reqIndexViewID]["bufferView"])
+                                requestedBuffer = true;
+
+                			// If after checking everything we didn't need it
+                			// delete it from the header
+            				if (!requestedBuffer)
+            					delete srcHeaderObj["bufferViews"][bufferViewID];
+
+            				requestedBuffer = false;
+                		}
+
+                        // Is the buffer view attached to an index view ?
+                        for (indexViewID in indexViews)
+                            if (indexViewID != reqIndexViewID)
+                                delete indexViews[indexViewID];
+
+                		for(mesh in srcHeaderObj["meshes"])
+                		{
+                			if (mesh != requestedMesh)
+                				delete srcHeaderObj["meshes"][mesh];
+                		}
+                	}
+                }
 
                 //1. create GL buffers for bufferChunks / bufferViews
 
@@ -419,7 +500,7 @@ x3dom.registerNodeType(
                     if (chunkIDList.length == 1)
                     {
                         chunk = bufferChunksObj[chunkIDList[0]];
-
+           
                         chunkDataView = new Uint8Array(srcBodyView.buffer,
                                                        srcBodyView.byteOffset + chunk["byteOffset"],
                                                        chunk["byteLength"]);
