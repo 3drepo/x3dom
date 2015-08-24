@@ -202,7 +202,7 @@ x3dom.NodeNameSpace.prototype.setupTree = function (domNode) {
             x3dom.debug.logWarning('Tree is already initialized');
             return null;
         }
-        
+
         // workaround since one cannot find out which handlers are registered
         if ( (domNode.tagName !== undefined) &&
             (!domNode.__addEventListener) && (!domNode.__removeEventListener) )
@@ -257,10 +257,23 @@ x3dom.NodeNameSpace.prototype.setupTree = function (domNode) {
                         else
                             otherNS = otherNS.parent;
                     }
+
+					for(var child_idx = 0; child_idx < this.childSpaces.length; child_idx++)
+					{
+						var childSpace = this.childSpaces[child_idx];
+
+						if(childSpace.name == nsName[0])
+						{
+							n = childSpace.defMap[nsName[1]];
+							break;
+						}
+					}
+
                     if (!n) {
                         n = null;
                         x3dom.debug.logWarning('Could not USE: ' + domNode.getAttribute('USE'));
                     }
+
                 }
             }
             if (n) {
@@ -340,9 +353,9 @@ x3dom.NodeNameSpace.prototype.setupTree = function (domNode) {
                         this.defMap[n._DEF] = n;
                     }
                 }
-                
+
                 // add experimental highlighting functionality
-                if (domNode.highlight === undefined) 
+                if (domNode.highlight === undefined)
                 {
                     domNode.highlight = function(enable, colorStr) {
                         var color = x3dom.fields.SFColor.parse(colorStr);

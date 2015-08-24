@@ -12,7 +12,7 @@ x3dom.registerNodeType(
     "X3DBoundedObject",
     "Grouping",
     defineClass(x3dom.nodeTypes.X3DChildNode,
-        
+
         /**
          * Constructor for X3DBoundedObject
          * @constructs x3dom.nodeTypes.X3DBoundedObject
@@ -38,6 +38,18 @@ x3dom.registerNodeType(
              * @instance
              */
             this.addField_SFBool(ctx, 'render', true);
+
+            /**
+             * Flag to make object invisible to culling and viewing
+			 *
+             * Flag to make object invisible
+             * @var {x3dom.fields.SFBool} invisible
+             * @memberof x3dom.nodeTypes.X3DBoundedObject
+             * @initvalue true
+             * @field x3dom
+             * @instance
+             */
+            this.addField_SFBool(ctx, 'invisible', false);
 
             /**
              * Center of the bounding box
@@ -71,7 +83,7 @@ x3dom.registerNodeType(
                 coverage:     -1,       // currently approx. number of pixels on screen
                 needCulling:  true      // to be able to disable culling per node
             };
-        
+
         },
         {
             fieldChanged: function (fieldName) {
@@ -98,7 +110,7 @@ x3dom.registerNodeType(
             {
                 var vol = this._graph.volume;
 
-                if (!this.volumeValid() && this._vf.render)
+                if (!this.volumeValid() && this._vf.render && !this.invisible)
                 {
                     for (var i=0, n=this._childNodes.length; i<n; i++)
                     {
