@@ -1413,8 +1413,8 @@ x3dom.Viewarea.prototype.initTurnTable = function(navi, flyTo)
     this._flyMat = currViewMat.inverse();
 
     this._from = this._flyMat.e3();
-    //this._at = this._from.subtract(this._flyMat.e2());
-    this._at = trans.multMatrixVec(center);
+    this._at = this._from.subtract(this._flyMat.e2());
+    //this._at = trans.multMatrixVec(center);
     this._up = this._flyMat.e1();
 
     this._flyMat = x3dom.fields.SFMatrix4f.lookAt(this._from, this._at, this._up);
