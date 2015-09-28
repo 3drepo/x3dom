@@ -71,6 +71,8 @@ x3dom.shader.fog = function() {
 x3dom.shader.clipPlanes = function(numClipPlanes) {
     var shaderPart = "", c;
 
+	shaderPart += "uniform bool enableClipPlanes;\n";
+
     for(c=0; c<numClipPlanes; c++) {
         shaderPart += 	"uniform vec4 clipPlane"+c+"_Plane;\n";
         shaderPart += 	"uniform float clipPlane"+c+"_CappingStrength;\n";
@@ -83,6 +85,8 @@ x3dom.shader.clipPlanes = function(numClipPlanes) {
         shaderPart += "    vec4 clipPlane" + c + " = clipPlane" + c + "_Plane * viewMatrixInverse;\n";
         shaderPart += "    float dist" + c + " = dot(fragPosition, clipPlane" + c + ");\n";
     }
+
+	shaderPart += " if (enableClipPlanes) {\n";
 
     shaderPart += "    if( ";
 
@@ -100,6 +104,8 @@ x3dom.shader.clipPlanes = function(numClipPlanes) {
         shaderPart += "    if( abs(dist" + c + ") < clipPlane" + c + "_CappingStrength ) ";
         shaderPart += "{ return clipPlane" + c + "_CappingColor; }\n";
     }
+
+	shaderPart += "}\n";
 
     shaderPart += "    return vec3(-1.0, -1.0, -1.0);\n";
 
