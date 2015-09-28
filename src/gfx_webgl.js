@@ -1567,6 +1567,9 @@ x3dom.gfx_webgl = (function () {
                     sp['clipPlane' + cp + '_Plane'] = clip_trafo.multMatrixPlane(clip_plane._vf.plane).toGL();
                     sp['clipPlane' + cp + '_CappingStrength'] = clip_plane._vf.cappingStrength;
                     sp['clipPlane' + cp + '_CappingColor'] = clip_plane._vf.cappingColor.toGL();
+
+                    sp['enableClipPlanes'] = true;
+
                 }
             }
 
@@ -1675,6 +1678,8 @@ x3dom.gfx_webgl = (function () {
                 {
                     //Disable Depth Test
                     this.stateManager.disable(gl.DEPTH_TEST);
+
+                    sp['enableClipPlanes'] = false;
                 }
             }
             else //Set Defaults
@@ -2145,6 +2150,8 @@ x3dom.gfx_webgl = (function () {
                 sp['clipPlane' + cp + '_CappingStrength'] = clip_plane._vf.cappingStrength;
                 sp['clipPlane' + cp + '_CappingColor'] = clip_plane._vf.cappingColor.toGL();
             }
+
+			sp['enableClipPlanes'] = true;
         }
 
 
@@ -2172,6 +2179,8 @@ x3dom.gfx_webgl = (function () {
             {
                 //Disable Depth Test
                 this.stateManager.disable(gl.DEPTH_TEST);
+
+		sp['enableClipPlanes'] = false;
             }
         }
         else //Set Defaults
