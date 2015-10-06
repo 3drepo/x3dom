@@ -458,6 +458,7 @@ x3dom.Viewarea.prototype.navigateTo = function(timeStamp)
             theta = typeParams[0];
             this._from.y = typeParams[1];
             this._at.y = this._from.y;
+            this._up   = new x3dom.fields.SFVec3f(0.0, 1.0, 0.0);
 
             // rotate around the up vector
             q = x3dom.fields.Quaternion.axisAngle(this._up, phi);
@@ -1764,7 +1765,50 @@ x3dom.Viewarea.prototype.onDrag = function (x, y, buttonState)
 
         buttonState = (!navRestrict || (navRestrict != 7 && buttonState == 1)) ? navRestrict : buttonState;
 
-        if (navType === "examine")
+        if (navType === "helicopter")
+        {
+            if (buttonState & 8) 
+            {
+                this._right = this._flyMat.e0();
+                this._up    = this._flyMat.e1();
+                this._view  = this._flyMat.e2();
+                this._from  = this._flyMat.e3(); // eye
+
+                beta = -(dy * Math.PI) / this._height;
+                alpha = navi._vf.typeParams[0] + beta;
+
+                if (Math.abs(alpha) < (Math.PI / 2))
+                {
+                    this._at   = this._from.subtract(this._view);
+                    this._at.y = this._from.y;
+                    this._up = new x3dom.fields.SFVec3f(0.0, 1.0, 0.0);
+
+                    // rotate around the side vector
+                    var lv = this._at.subtract(this._from).normalize();
+                    var sv = lv.cross(this._up).normalize();
+                    var up = sv.cross(lv).normalize();
+
+                    // rotate around the side vector
+                    var q = x3dom.fields.Quaternion.axisAngle(sv, alpha);
+                    var temp = q.toMatrix();
+
+                    var fin = x3dom.fields.SFMatrix4f.translation(this._from);
+                    fin = fin.mult(temp);
+
+                    temp = x3dom.fields.SFMatrix4f.translation(this._from.negate());
+                    fin = fin.mult(temp);
+
+                    var at = fin.multMatrixPnt(this._at);
+
+                    this._flyMat = x3dom.fields.SFMatrix4f.lookAt(this._from, at, up);
+
+                    navi._vf.typeParams[0] = alpha;
+
+                    viewpoint.setView(this._flyMat.inverse());
+                }
+            }
+
+        } else if (navType === "examine")
         {
             if (buttonState & 1) //left
             {
@@ -1797,7 +1841,7 @@ x3dom.Viewarea.prototype.onDrag = function (x, y, buttonState)
                                  mult(x3dom.fields.SFMatrix4f.translation(this._movement)).
                                  mult(mat);
             }
-            if (buttonState & 2) //right
+            if ((buttonState & 2) || (buttonState & 8))//right
             {
                     d = (this._scene._lastMax.subtract(this._scene._lastMin)).length();
                     d = ((d < x3dom.fields.Eps) ? 1 : d) * navi._vf.speed;
@@ -1838,7 +1882,7 @@ x3dom.Viewarea.prototype.onDrag = function (x, y, buttonState)
                 this._flyMat = this.calcOrbit(alpha, beta, navi);
                 viewpoint.setView(this._flyMat.inverse());
             }
-            else if (buttonState & 2) //right
+            else if ((buttonState & 2) || (buttonState & 8)) //right
             {
                 d = (this._scene._lastMax.subtract(this._scene._lastMin)).length();
                 d = ((d < x3dom.fields.Eps) ? 1 : d) * navi._vf.speed;

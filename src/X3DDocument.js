@@ -409,7 +409,7 @@ x3dom.X3DDocument.prototype.onWheel = function (ctx, x, y, originalY) {
 
     if (this._viewarea._scene._vf.doPickPass)
         ctx.pickValue(this._viewarea, x, originalY, 0);
-    this._viewarea.onDrag(x, y, 2);
+    this._viewarea.onDrag(x, y, 8);
 };
 
 x3dom.X3DDocument.prototype.onMousePress = function (ctx, x, y, buttonState) {
