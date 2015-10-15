@@ -140,18 +140,26 @@ x3dom.registerNodeType(
 
                 if (!this.volumeValid() && this._vf.render)
                 {
-                    for (var i=0; i<this._partVisibility.length; i++)
-                    {
-                        if (!this._partVisibility[i])
-                            continue;
+					if (this._partVisibility.length) {
+						for (var i=0; i<this._partVisibility.length; i++)
+						{
+							if (!this._partVisibility[i])
+								continue;
 
-                        var childVol = this._partVolume[i];
+							var childVol = this._partVolume[i];
 
-                        if (childVol && childVol.isValid())
-                            vol.extendBounds(childVol.min, childVol.max);
-                    }
-                }
-                
+							if (childVol && childVol.isValid())
+								vol.extendBounds(childVol.min, childVol.max);
+						}
+					} else {
+					 if (typeof this._vf["bboxCenter"] != 'undefined' &&
+							typeof this._vf["bboxSize"] != 'undefined' )
+						{
+							vol.setBoundsByCenterSize(this._vf["bboxCenter"], this._vf["bboxSize"]);
+						}
+					}
+				}
+
                 return vol;
             },
 
