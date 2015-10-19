@@ -64,7 +64,7 @@ x3dom.registerNodeType(
              * @param {Object} viewarea - x3dom view area
              * @param {Object} context - x3dom context object
              */
-            updateRenderData: function(shape, shaderProgram, gl, viewarea, context) {
+            updateRenderData: function(shape, shaderProgram, gl, viewarea, context, requestedMesh) {
                 var that = this;
                 var xhr;
 
@@ -87,9 +87,6 @@ x3dom.registerNodeType(
                 //shape._webgl.makeSeparateTris = {...};
 
 
-                //post request
-                xhr = new XMLHttpRequest();
-
                 var url = shape._nameSpace.getURL(this._vf['url'][this._currentURLIdx]);
                 var urlParts = url.split("#");
                 var requestedMesh = "";
@@ -103,108 +100,138 @@ x3dom.registerNodeType(
                 	url = urlParts[0];
                 }
 
-                xhr.open("GET", url, true);
+                if (!this._nameSpace.doc._xhrLoads[url])
+                {
+                	//post request
+                	xhr = new XMLHttpRequest();
 
-                xhr.responseType = "arraybuffer";
+                	this._nameSpace.doc._xhrLoads[url] = xhr;
 
-                xhr.send(null);
+                	xhr.open("GET", url, true);
+
+                	xhr.responseType = "arraybuffer";
+
+                	xhr.send(null);
+
+                	xhr.onload = function() {
+                		that._onceLoaded(this, shape, shaderProgram, gl, viewarea, context, requestedMesh);
+			};
+
+		} else {
+			xhr = this._nameSpace.doc._xhrLoads[url];
+
+			if ((xhr.status !== 200) && (xhr.readyState !== 4))
+			{
+				xhr.onreadystatechange = function () {
+					if ((this.status === 200) && (this.readyState === 4))
+					{
+						that._onceLoaded(this, shape, shaderProgram, gl, viewarea, context, requestedMesh);
+					}
+				};
+			} else  {
+				this._onceLoaded(xhr, shape, shaderProgram, gl, viewarea, context, requestedMesh);
+			}
+		}
 
                 this.url = url;
 
                 xhr.onerror = function() {
                     x3dom.debug.logError("Unable to load SRC data from URL \"" + that._vf['url'][that._currentURLIdx] + "\"");
                 };
-
-                //TODO: currently, we assume that the referenced file is always an SRC file
-                xhr.onload = function() {
-                    shape._webgl.internalDownloadCount  = 0;
-                    shape._nameSpace.doc.downloadCount  = 0;
-
-                    var responseBeginUint32 = new Uint32Array(xhr.response, 0, 12);
-
-                    var srcHeaderSize, srcBodySize, srcBodyOffset;
-                    var srcHeaderView, srcBodyView;
-
-                    var srcHeaderObj;
-
-                    if ((xhr.status == 200 || xhr.status == 0) && responseBeginUint32.length >= 3) {
-
-                        srcHeaderSize = responseBeginUint32[2];
-                        srcBodyOffset = srcHeaderSize + 12;
-                        srcBodySize   = xhr.response.byteLength - srcBodyOffset;
-
-                        if (srcHeaderSize > 0 &&  srcBodySize >= 0)
-                        {
-                            srcHeaderView = new Uint8Array(xhr.response, 12,            srcHeaderSize);
-                            srcBodyView   = new Uint8Array(xhr.response, srcBodyOffset, srcBodySize  );
-
-                            //decode SRC header
-                            //currently, we assume ASCII JSON encoding
-                            try
-                            {
-                                srcHeaderObj = "";
-                                
-                                for (var i = 0; i < srcHeaderView.length; i++) {
-                                    srcHeaderObj += String.fromCharCode(srcHeaderView[i]);
-                                }
-
-                                srcHeaderObj = JSON.parse(srcHeaderObj);
-                            }
-                            catch (exc)
-                            {
-                                x3dom.debug.logError("Unable to parse SRC header: " + exc);
-                                return;
-                            }
-
-                            that._updateRenderDataFromSRC(shape, shaderProgram, gl, srcHeaderObj, srcBodyView, requestedMesh);
-                        }
-                        else
-                        {
-                            if ((that._currentURLIdx + 1) < that._vf['url'].length)
-                            {
-                                x3dom.debug.logWarning("Invalid SRC data, loaded from URL \"" +
-                                                        that._vf['url'][that._currentURLIdx] +
-                                                        "\", trying next specified URL");
-
-                                //try next URL
-                                ++that._currentURLIdx;
-                                that.updateRenderData(shape, shaderProgram, gl, viewarea, context);
-                            }
-                            else
-                            {
-                                x3dom.debug.logError("Invalid SRC data, loaded from URL \"" +
-                                                     that._vf['url'][that._currentURLIdx] + "\"," +
-                                                     " no other URLs left to try.");
-                            }
-                        }
-                    }
-                    else
-                    {
-                        if ((that._currentURLIdx + 1) < that._vf['url'].length)
-                        {
-                            x3dom.debug.logWarning("Invalid SRC data, loaded from URL \"" +
-                                                    that._vf['url'][that._currentURLIdx] +
-                                                    "\", trying next specified URL");
-
-                            //try next URL
-                            ++that._currentURLIdx;
-                            that.updateRenderData(shape, shaderProgram, gl, viewarea, context);
-                        }
-                        else
-                        {
-                            x3dom.debug.logError("Invalid SRC data, loaded from URL \"" +
-                            that._vf['url'][that._currentURLIdx] + "\"," +
-                            " no other URLs left to try.");
-                        }
-                    }
-                };
-            } ,
+			},
 
             //----------------------------------------------------------------------------------------------------------
 
             //----------------------------------------------------------------------------------------------------------
             // PRIVATE FUNCTIONS
             //----------------------------------------------------------------------------------------------------------
+
+            _onceLoaded : function(xhr, shape, shaderProgram, gl, viewarea, context, requestedMesh)
+            {
+
+                var that = this;
+
+                shape._webgl.internalDownloadCount  = 0;
+                shape._nameSpace.doc.downloadCount  = 0;
+
+                var responseBeginUint32 = new Uint32Array(xhr.response, 0, 12);
+
+                var srcHeaderSize, srcBodySize, srcBodyOffset;
+                var srcHeaderView, srcBodyView;
+
+                var srcHeaderObj;
+
+                if ((xhr.status === 200 || xhr.status === 0) && responseBeginUint32.length >= 3) {
+
+                srcHeaderSize = responseBeginUint32[2];
+                srcBodyOffset = srcHeaderSize + 12;
+                srcBodySize   = xhr.response.byteLength - srcBodyOffset;
+
+                if (srcHeaderSize > 0 &&  srcBodySize >= 0)
+                {
+                    srcHeaderView = new Uint8Array(xhr.response, 12,            srcHeaderSize);
+                    srcBodyView   = new Uint8Array(xhr.response, srcBodyOffset, srcBodySize  );
+
+                    //decode SRC header
+                    //currently, we assume ASCII JSON encoding
+                    try
+                    {
+                        srcHeaderObj = "";
+
+                        for (var i = 0; i < srcHeaderView.length; i++) {
+                            srcHeaderObj += String.fromCharCode(srcHeaderView[i]);
+                        }
+
+                        srcHeaderObj = JSON.parse(srcHeaderObj);
+                    }
+                    catch (exc)
+                    {
+                        x3dom.debug.logError("Unable to parse SRC header: " + exc);
+                        return;
+                    }
+
+                    that._updateRenderDataFromSRC(shape, shaderProgram, gl, srcHeaderObj, srcBodyView, requestedMesh);
+                }
+                else
+                {
+                    if ((that._currentURLIdx + 1) < that._vf['url'].length)
+                    {
+                        x3dom.debug.logWarning("Invalid SRC data, loaded from URL \"" +
+                            that._vf['url'][that._currentURLIdx] +
+                            "\", trying next specified URL");
+
+                        //try next URL
+                        ++that._currentURLIdx;
+                        that.updateRenderData(shape, shaderProgram, gl, viewarea, context);
+                    }
+                    else
+                    {
+                        x3dom.debug.logError("Invalid SRC data, loaded from URL \"" +
+                            that._vf['url'][that._currentURLIdx] + "\"," +
+                            " no other URLs left to try.");
+                    }
+                }
+				}
+				else
+				{
+					if ((that._currentURLIdx + 1) < that._vf['url'].length)
+					{
+						x3dom.debug.logWarning("Invalid SRC data, loaded from URL \"" +
+												that._vf['url'][that._currentURLIdx] +
+												"\", trying next specified URL");
+
+						//try next URL
+						++that._currentURLIdx;
+						that.updateRenderData(shape, shaderProgram, gl, viewarea, context);
+					}
+					else
+					{
+						x3dom.debug.logError("Invalid SRC data, loaded from URL \"" +
+						that._vf['url'][that._currentURLIdx] + "\"," +
+						" no other URLs left to try.");
+					}
+				}
+			},
 
             //TODO: we currently assume that we always read data from exactly one SRC (i.e., no Source nodes)
             /**
@@ -503,7 +530,7 @@ x3dom.registerNodeType(
                     if (chunkIDList.length == 1)
                     {
                         chunk = bufferChunksObj[chunkIDList[0]];
-           
+
                         chunkDataView = new Uint8Array(srcBodyView.buffer,
                                                        srcBodyView.byteOffset + chunk["byteOffset"],
                                                        chunk["byteLength"]);
