@@ -59,9 +59,6 @@ x3dom.X3DDocument.prototype.manageDownload = function(url, responseType, callbac
         xhr.send(null);
 
         xhr.onreadystatechange = function () {
-            that.status     = this.status;
-            that.readyState = this.readyState;
-
             if ((this.status === 200) && (this.readyState === 4))
             {
                 for(var i = 0; i < that._xhrCallbacks[url].length; i++)
@@ -72,7 +69,7 @@ x3dom.X3DDocument.prototype.manageDownload = function(url, responseType, callbac
         };
     };
 
-    if (that.status !== 200 && that.readyState !== 4)
+    if (that._xhrLoads[url].status !== 200 && that._xhrLoads[url].readyState !== 4)
     {
         that._xhrCallbacks[url].push(callback);
     } else {
