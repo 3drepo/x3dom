@@ -1767,7 +1767,7 @@ x3dom.Viewarea.prototype.onDrag = function (x, y, buttonState)
 
         if (navType === "helicopter")
         {
-            if (buttonState & 8) 
+            if (buttonState & 8)
             {
                 this._right = this._flyMat.e0();
                 this._up    = this._flyMat.e1();
@@ -1775,7 +1775,7 @@ x3dom.Viewarea.prototype.onDrag = function (x, y, buttonState)
                 this._from  = this._flyMat.e3(); // eye
 
                 beta = -(dy * Math.PI) / this._height;
-                alpha = navi._vf.typeParams[0] + beta;
+                alpha = navi._vf.typeParams[0] - beta;
 
                 if (Math.abs(alpha) < (Math.PI / 2))
                 {

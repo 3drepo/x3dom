@@ -100,45 +100,10 @@ x3dom.registerNodeType(
                 	url = urlParts[0];
                 }
 
-                if (!this._nameSpace.doc._xhrLoads[url])
-                {
-                	//post request
-                	xhr = new XMLHttpRequest();
-
-                	this._nameSpace.doc._xhrLoads[url] = xhr;
-
-                	xhr.open("GET", url, true);
-
-                	xhr.responseType = "arraybuffer";
-
-                	xhr.send(null);
-
-                	xhr.onload = function() {
-                		that._onceLoaded(this, shape, shaderProgram, gl, viewarea, context, requestedMesh);
-			};
-
-		} else {
-			xhr = this._nameSpace.doc._xhrLoads[url];
-
-			if ((xhr.status !== 200) && (xhr.readyState !== 4))
-			{
-				xhr.onreadystatechange = function () {
-					if ((this.status === 200) && (this.readyState === 4))
-					{
-						that._onceLoaded(this, shape, shaderProgram, gl, viewarea, context, requestedMesh);
-					}
-				};
-			} else  {
-				this._onceLoaded(xhr, shape, shaderProgram, gl, viewarea, context, requestedMesh);
-			}
-		}
-
-                this.url = url;
-
-                xhr.onerror = function() {
-                    x3dom.debug.logError("Unable to load SRC data from URL \"" + that._vf['url'][that._currentURLIdx] + "\"");
-                };
-			},
+                this._nameSpace.doc.manageDownload(url, "arraybuffer", function(xhr) {
+                    that._onceLoaded(xhr, shape, shaderProgram, gl, viewarea, context, requestedMesh);
+                });
+            } ,
 
             //----------------------------------------------------------------------------------------------------------
 

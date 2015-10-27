@@ -22,6 +22,7 @@ x3dom.X3DDocument = function(canvas, ctx, settings) {
     this.downloadCount = 0;     // Counter for objects to be loaded
     this.previousDownloadCount = 0;
     this._xhrLoads             = {};
+    this._xhrCallbacks         = {};
 
     // bag for pro-active (or multi-core-like) elements
     this._nodeBag = {
@@ -38,6 +39,45 @@ x3dom.X3DDocument = function(canvas, ctx, settings) {
 
     this.onload = function () {};
     this.onerror = function () {};
+};
+
+x3dom.X3DDocument.prototype.manageDownload = function(url, responseType, callback)
+{
+	var that = this;
+
+    if (!that._xhrLoads[url])
+    {
+        //post request
+        xhr = new XMLHttpRequest();
+
+        that._xhrLoads[url] = xhr;
+        that._xhrCallbacks[url] = [];
+        xhr.open("GET", url, true);
+
+        xhr.responseType = responseType;
+
+        xhr.send(null);
+
+        xhr.onreadystatechange = function () {
+            that.status     = this.status;
+            that.readyState = this.readyState;
+
+            if ((this.status === 200) && (this.readyState === 4))
+            {
+                for(var i = 0; i < that._xhrCallbacks[url].length; i++)
+                {
+                    that._xhrCallbacks[url][i](that._xhrLoads[url]);
+                }
+            }
+        };
+    };
+
+    if (that.status !== 200 && that.readyState !== 4)
+    {
+        that._xhrCallbacks[url].push(callback);
+    } else {
+        callback(that._xhrLoads[url]);
+    }
 };
 
 x3dom.X3DDocument.prototype.load = function (uri, sceneElemPos) {
