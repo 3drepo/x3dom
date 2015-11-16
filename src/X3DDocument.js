@@ -67,9 +67,9 @@ x3dom.X3DDocument.prototype.manageDownload = function(url, responseType, callbac
                 }
             }
         };
-    };
+    }
 
-    if (that._xhrLoads[url].status !== 200 && that._xhrLoads[url].readyState !== 4)
+    if (!((that._xhrLoads[url].status == 200) && (that._xhrLoads[url].readyState == 4)))
     {
         that._xhrCallbacks[url].push(callback);
     } else {
