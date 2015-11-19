@@ -95,8 +95,8 @@ x3dom.registerNodeType(
             this._lastId = -1;
             this._lastClickedId = -1;
             this._lastButton = 0;
-            this._identifierToPartId = [];
-            this._identifierToAppId = [];
+            this._identifierToPartId = {};
+            this._identifierToAppId = {};
             this._visiblePartsPerShape = [];
             this._partVolume = [];
             this._partVisibility = [];

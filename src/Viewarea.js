@@ -439,13 +439,15 @@ x3dom.Viewarea.prototype.navigateTo = function(timeStamp)
         else if (navType === "helicopter") {
             var typeParams = navi.getTypeParams();
 
+            var sideStep = 0;
 
-
-            if (this._lastButton & 2) // up/down levelling
+            if (this._lastButton & 2 || this._lastButton & 4) // up/down levelling
             {
                 var stepUp = 200 * userYstep;
                 typeParams[1] += stepUp;
                 navi.setTypeParams(typeParams);
+		phi = 0.0;
+		sideStep = 200 * userXstep;
             }
 
             if (this._lastButton & 1) {  // forward/backward motion
@@ -481,6 +483,9 @@ x3dom.Viewarea.prototype.navigateTo = function(timeStamp)
 
             this._from = this._from.add(lv);
             this._at = this._at.add(lv);
+
+            this._from = this._from.add(sv.multiply(sideStep));
+            this._at = this._at.add(sv.multiply(sideStep));
 
             // rotate around the side vector
             q = x3dom.fields.Quaternion.axisAngle(sv, theta);
