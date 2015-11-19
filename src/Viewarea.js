@@ -446,8 +446,8 @@ x3dom.Viewarea.prototype.navigateTo = function(timeStamp)
                 var stepUp = 200 * userYstep;
                 typeParams[1] += stepUp;
                 navi.setTypeParams(typeParams);
-		phi = 0.0;
-		sideStep = 200 * userXstep;
+                phi = 0.0;
+		sideStep = -200 * userXstep;
             }
 
             if (this._lastButton & 1) {  // forward/backward motion
