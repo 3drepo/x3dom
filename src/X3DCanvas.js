@@ -73,7 +73,7 @@ x3dom.X3DCanvas = function(x3dElem, canvasIdx)
             case "width":
                 that.canvas.setAttribute("width", newVal);
                 if (that.doc && that.doc._viewarea) {
-                    that.doc._viewarea._width = parseInt(that.canvas.getAttribute("width"), 0);
+                    that.doc._viewarea._width = that.canvas.offsetWidth;
                     that.doc.needRender = true;
                 }
                 break;
@@ -81,7 +81,7 @@ x3dom.X3DCanvas = function(x3dElem, canvasIdx)
             case "height":
                 that.canvas.setAttribute("height", newVal);
                 if (that.doc && that.doc._viewarea) {
-                    that.doc._viewarea._height = parseInt(that.canvas.getAttribute("height"), 0);
+                    that.doc._viewarea._height = that.canvas.offsetHeight;
                     that.doc.needRender = true;
                 }
                 break;

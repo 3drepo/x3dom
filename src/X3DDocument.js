@@ -362,8 +362,8 @@ x3dom.X3DDocument.prototype._setup = function (sceneDoc, uriDocs, sceneElemPos) 
     // create view
     this._viewarea = new x3dom.Viewarea (this, scene);
 
-    this._viewarea._width = this.canvas.width;
-    this._viewarea._height = this.canvas.height;
+    this._viewarea._width = this.canvas.offsetWidth;
+    this._viewarea._height = this.canvas.offsetHeight;
 };
 
 x3dom.X3DDocument.prototype.advanceTime = function (t) {
