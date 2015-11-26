@@ -1871,7 +1871,7 @@ x3dom.gfx_webgl = (function () {
     {
 		// Variable to indicate that the indices are successful bind
 		var indicesReady = false;
-		
+
         var shape = drawable.shape;
         var transform = drawable.transform;
 
@@ -3264,7 +3264,7 @@ x3dom.gfx_webgl = (function () {
             this.setupFgnds(gl, scene);
 
             // scale factor for mouse coords and width/ height (low res for speed-up)
-            scene._webgl.pickScale = 0.5;
+            scene._webgl.pickScale = 0.5 * (this.canvas.width / this.canvas.offsetWidth);
 
             scene._webgl._currFboWidth = Math.round(this.canvas.width * scene._webgl.pickScale);
             scene._webgl._currFboHeight = Math.round(this.canvas.height * scene._webgl.pickScale);
