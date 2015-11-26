@@ -1457,8 +1457,9 @@ x3dom.gfx_webgl = (function () {
     {
         var ps = scene._webgl.pickScale;
         var bufHeight = scene._webgl.fboPick.height;
-        var x = lastX * ps;
-        var y = (bufHeight - 1) - lastY * ps;
+        var x = lastX * ps * (this.canvas.width / this.canvas.offsetWidth);
+        var y = (bufHeight - 1) - lastY * ps * (this.canvas.width / this.canvas.offsetWidth);
+
 
         var indicesReady = false;
 
@@ -3264,7 +3265,7 @@ x3dom.gfx_webgl = (function () {
             this.setupFgnds(gl, scene);
 
             // scale factor for mouse coords and width/ height (low res for speed-up)
-            scene._webgl.pickScale = 0.5 * (this.canvas.width / this.canvas.offsetWidth);
+            scene._webgl.pickScale = 0.5;
 
             scene._webgl._currFboWidth = Math.round(this.canvas.width * scene._webgl.pickScale);
             scene._webgl._currFboHeight = Math.round(this.canvas.height * scene._webgl.pickScale);
