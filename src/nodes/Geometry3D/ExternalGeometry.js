@@ -88,6 +88,9 @@ x3dom.registerNodeType(
 
 
                 var url = shape._nameSpace.getURL(this._vf['url'][this._currentURLIdx]);
+                var queryParts = url.split("?");
+                var queryString = queryParts[queryParts.length - 1];
+
                 var urlParts = url.split("#");
                 var requestedMesh = "";
 
@@ -99,6 +102,8 @@ x3dom.registerNodeType(
                 } else if (urlParts.length > 2) {
                 	url = urlParts[0];
                 }
+
+                url += "?" + queryString;
 
                 this._nameSpace.doc.manageDownload(url, "arraybuffer", function(xhr) {
                     that._onceLoaded(xhr, shape, shaderProgram, gl, viewarea, context, requestedMesh);
