@@ -477,7 +477,7 @@ x3dom.Utils.createTextureCube = function(gl, doc, src, bgnd, crossOrigin, scale,
 /*****************************************************************************
  * Initialize framebuffer object and associated texture(s)
  *****************************************************************************/
-x3dom.Utils.initFBO = function(gl, w, h, type, mipMap, needRenderBuf, numMrt) {
+x3dom.Utils.initFBO = function(gl, w, h, type, mipMap, needDepthBuf, numMrt) {
     var tex = gl.createTexture();
     tex.width  = w;
     tex.height = h;
@@ -507,14 +507,27 @@ x3dom.Utils.initFBO = function(gl, w, h, type, mipMap, needRenderBuf, numMrt) {
     }
 
     var fbo = gl.createFramebuffer();
+    var dtex = null;
     var rb = null;
 
-    if (needRenderBuf) {
-        rb = gl.createRenderbuffer();
-
-        gl.bindRenderbuffer(gl.RENDERBUFFER, rb);
-        gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, w, h);
-        gl.bindRenderbuffer(gl.RENDERBUFFER, null);
+    if (needDepthBuf) {
+        if(x3dom.caps.DEPTH_TEXTURE !== null) {
+            dtex = gl.createTexture();
+            gl.bindTexture(gl.TEXTURE_2D, dtex);
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.DEPTH_COMPONENT, w, h, 0, gl.DEPTH_COMPONENT, gl.UNSIGNED_SHORT, null);
+            if(mipMap)
+                gl.generateMipmap(gl.TEXTURE_2D);
+            gl.bindTexture(gl.TEXTURE_2D, null);
+            dtex.width = w;
+            dtex.height = h;
+        }
+        else {
+            rb = gl.createRenderbuffer();
+            
+            gl.bindRenderbuffer(gl.RENDERBUFFER, rb);
+            gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, w, h);
+            gl.bindRenderbuffer(gl.RENDERBUFFER, null);
+        }
     }
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
@@ -525,7 +538,13 @@ x3dom.Utils.initFBO = function(gl, w, h, type, mipMap, needRenderBuf, numMrt) {
             gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0 + i, gl.TEXTURE_2D, mrts[i], 0);
         }
     }
-    gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, rb);
+    
+    if(needDepthBuf && x3dom.caps.DEPTH_TEXTURE !== null) {
+        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.TEXTURE_2D, dtex, 0);
+    }
+    else {
+        gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, rb);
+    }
 
     var status = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
     if (status != gl.FRAMEBUFFER_COMPLETE) {
@@ -535,7 +554,7 @@ x3dom.Utils.initFBO = function(gl, w, h, type, mipMap, needRenderBuf, numMrt) {
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 
     return {
-        fbo: fbo, rbo: rb,
+        fbo: fbo, dtex: dtex, rbo: rb,
         tex: tex, texTargets: mrts,
         width: w, height: h,
         type: type, mipMap: mipMap
@@ -997,19 +1016,22 @@ x3dom.Utils.generateProperties = function (viewarea, shape)
         property.VERTEXID         = ((property.BINARYGEOMETRY || property.EXTERNALGEOMETRY) && geometry._vf.idsPerVertex) ? 1 : 0;
         property.IS_PARTICLE      = (x3dom.isa(geometry, x3dom.nodeTypes.ParticleSet)) ? 1 : 0;
 
-        property.APPMAT           = (appearance && (material || property.CSSHADER) ) ? 1 : 0;
+
         property.TWOSIDEDMAT      = ( property.APPMAT && x3dom.isa(material, x3dom.nodeTypes.TwoSidedMaterial)) ? 1 : 0;
         property.SEPARATEBACKMAT  = ( property.TWOSIDEDMAT && material._vf.separateBackColor) ? 1 : 0;
         property.SHADOW           = (viewarea.getLightsShadow()) ? 1 : 0;
         property.FOG              = (viewarea._scene.getFog()._vf.visibilityRange > 0) ? 1 : 0;
         property.CSSHADER         = (appearance && appearance._shader &&
                                      x3dom.isa(appearance._shader, x3dom.nodeTypes.CommonSurfaceShader)) ? 1 : 0;
+        property.APPMAT           = (appearance && (material || property.CSSHADER) ) ? 1 : 0;
         property.LIGHTS           = (!property.POINTLINE2D && appearance && shape.isLit() && (material || property.CSSHADER)) ?
                                      viewarea.getLights().length + (viewarea._scene.getNavigationInfo()._vf.headlight) : 0;
         property.TEXTURED         = (texture || property.TEXT || ( property.CSSHADER && appearance._shader.needTexcoords() ) ) ? 1 : 0;
+        property.CUBEMAP          = (texture && x3dom.isa(texture, x3dom.nodeTypes.X3DEnvironmentTextureNode)) ||
+                                    (property.CSSHADER && appearance._shader.getEnvironmentMap()) ? 1 : 0;
         property.PIXELTEX         = (texture && x3dom.isa(texture, x3dom.nodeTypes.PixelTexture)) ? 1 : 0;
         property.TEXTRAFO         = (appearance && appearance._cf.textureTransform.node) ? 1 : 0;
-        property.DIFFUSEMAP       = texture || (property.CSSHADER && appearance._shader.getDiffuseMap()) ? 1 : 0;
+        property.DIFFUSEMAP       = (texture && !x3dom.isa(texture, x3dom.nodeTypes.X3DEnvironmentTextureNode) ) || (property.CSSHADER && appearance._shader.getDiffuseMap()) ? 1 : 0;
         property.NORMALMAP        = (property.CSSHADER && appearance._shader.getNormalMap()) ? 1 : 0;
 		property.NORMALSPACE      = (property.NORMALMAP) ? appearance._shader._vf.normalSpace.toUpperCase() : "";
         property.SPECMAP          = (property.CSSHADER && appearance._shader.getSpecularMap()) ? 1 : 0;
@@ -1020,7 +1042,7 @@ x3dom.Utils.generateProperties = function (viewarea, shape)
         property.MULTIEMIAMBMAP   = (property.VERTEXID && property.CSSHADER && appearance._shader.getMultiEmissiveAmbientMap()) ? 1 : 0;
         property.MULTISPECSHINMAP = (property.VERTEXID && property.CSSHADER && appearance._shader.getMultiSpecularShininessMap()) ? 1 : 0;
         property.MULTIVISMAP      = (property.VERTEXID && property.CSSHADER && appearance._shader.getMultiVisibilityMap()) ? 1 : 0;
-        property.CUBEMAP          = (texture && x3dom.isa(texture, x3dom.nodeTypes.X3DEnvironmentTextureNode)) ? 1 : 0;
+
         property.BLENDING         = (property.TEXT || property.CUBEMAP || (texture && texture._blending)) ? 1 : 0;
         property.REQUIREBBOX      = (geometry._vf.coordType !== undefined && geometry._vf.coordType != "Float32") ? 1 : 0;
         property.REQUIREBBOXNOR   = (geometry._vf.normalType !== undefined && geometry._vf.normalType != "Float32") ? 1 : 0;
@@ -1040,6 +1062,8 @@ x3dom.Utils.generateProperties = function (viewarea, shape)
 		property.ALPHATHRESHOLD	  = (appearance) ? appearance._vf.alphaClipThreshold.toFixed(2) : 0.1;
 
         property.GAMMACORRECTION  = environment._vf.gammaCorrectionDefault;
+
+        //console.log(property);
 	}
 
 	property.toIdentifier = function() {
