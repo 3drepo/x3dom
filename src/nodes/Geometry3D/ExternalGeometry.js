@@ -64,7 +64,7 @@ x3dom.registerNodeType(
              * @param {Object} viewarea - x3dom view area
              * @param {Object} context - x3dom context object
              */
-            updateRenderData: function(shape, shaderProgram, gl, viewarea, context, requestedMesh) {
+            updateRenderData: function(shape, shaderProgram, gl, viewarea, context) {
                 var that = this;
                 var xhr;
 
@@ -89,12 +89,11 @@ x3dom.registerNodeType(
 
                 var url = shape._nameSpace.getURL(this._vf['url'][this._currentURLIdx]);
                 var queryParts = url.split("?");
-                var queryString = queryParts[queryParts.length - 1];
 
                 var urlParts = url.split("#");
                 var requestedMesh = "";
 
-                if (urlParts.length == 2)
+                if (urlParts.length === 2)
                 {
                 	// TODO: currently, only one mesh can be selected
                 	url = urlParts[0];
@@ -103,7 +102,7 @@ x3dom.registerNodeType(
                 	url = urlParts[0];
                 }
 
-                url += "?" + queryString;
+                url += ((queryParts.length > 1) ? ("?" + queryParts[queryParts.length - 1]) : "");
 
                 this._nameSpace.doc.manageDownload(url, "arraybuffer", function(xhr) {
                     that._onceLoaded(xhr, shape, shaderProgram, gl, viewarea, context, requestedMesh);
