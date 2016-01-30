@@ -45,7 +45,7 @@ function send_xhr(basePath){
                     }
                 }
             } else {
-                //console.error('xhr status is not 200 on: ' + path);
+                console.log('xhr status is not 200 on: ' + basePath + ', continuing search...');
 				if (maxDepth-- > 0) {
 					send_xhr(basePath + "../");
 				}
