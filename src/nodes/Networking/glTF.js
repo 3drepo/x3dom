@@ -179,6 +179,12 @@ x3dom.registerNodeType(
                 // create and apply the appearance node from the mesh material
                 //todo: set the material
 
+                var appearenceNode = sceneDoc.createElement("Appearance");
+                shapeNode.appendChild(appearenceNode);
+                var materialNode = sceneDoc.createElement("Material");
+                appearenceNode.appendChild(materialNode);
+                materialNode.setAttribute("diffuseColor", "1 0 0");
+
                 return shapeNode;
             },
 
