@@ -65,6 +65,10 @@ x3dom.registerNodeType(
             //the gltf again.
             this.gltfHeader = null;
 
+            //the pathname of the gltf header. external resource uris will be relative to this. if the gltf header
+            //is set directly, this must also be set.
+            this.gltfHeaderBaseURI = null;
+
             //caches the gltf buffers
             this._bufferData = {};
 
@@ -424,90 +428,6 @@ x3dom.registerNodeType(
             },
 
             //----------------------------------------------------------------------------------------------------------
-
-            /**
-             * Helper function, creating WebGL buffers for the given SRC data structures.
-             * The result is stored in the given map from bufferView IDs to GL buffer IDs.
-             *
-             * @param {Object} gl - WebGL context
-             * @param {Object} bufferChunksObj - the SRC header's bufferChunks object
-             * @param {Object} bufferViewsObj - the SRC header's bufferViews object
-             * @param {Uint8Array} srcBodyView - a typed array view on the body of the SRC file
-             * @param {Object} indexViewBufferIDs - an object which holds the IDs of all index data bufferViews
-             * @param {Object} viewIDsToGLBufferIDs - map that will be filled with a GL buffer ID for each bufferView ID
-             * @private
-             */
-            _createGLBuffersFromSRCChunks: function(gl, bufferChunksObj, bufferViewsObj, srcBodyView,
-                                                    indexViewBufferIDs, viewIDsToGLBufferIDs)
-            {
-                var i;
-                var bufferView;
-                var chunkIDList;
-                var bufferType;
-
-                var chunk;
-                var newBuffer;
-                var chunkDataView;
-                var currentChunkDataOffset;
-
-                //for each buffer view object, create and fill a GL buffer from its buffer chunks
-                for (var bufferViewID in bufferViewsObj)
-                {
-                    bufferType = (typeof indexViewBufferIDs[bufferViewID] !== 'undefined') ? gl.ELEMENT_ARRAY_BUFFER :
-                                                                                             gl.ARRAY_BUFFER;
-
-                    bufferView = bufferViewsObj[bufferViewID];
-
-                    chunkIDList = bufferView["chunks"];
-
-                    //case 1: single chunk
-                    if (chunkIDList.length == 1)
-                    {
-                        chunk = bufferChunksObj[chunkIDList[0]];
-
-                        chunkDataView = new Uint8Array(srcBodyView.buffer,
-                                                       srcBodyView.byteOffset + chunk["byteOffset"],
-                                                       chunk["byteLength"]);
-
-                        newBuffer = gl.createBuffer();
-
-                        gl.bindBuffer(bufferType, newBuffer);
-
-                        //upload all chunk data to GPU
-                        gl.bufferData(bufferType, chunkDataView, gl.STATIC_DRAW);
-
-                        viewIDsToGLBufferIDs[bufferViewID] = newBuffer;
-                    }
-                    //case 2: multiple chunks
-                    else
-                    {
-                        newBuffer = gl.createBuffer();
-
-                        gl.bindBuffer(bufferType, newBuffer);
-
-                        //reserve GPU memory for all chunks
-                        gl.bufferData(bufferType, bufferView["byteLength"], gl.STATIC_DRAW);
-
-                        currentChunkDataOffset = 0;
-
-                        for (i = 0; i < chunkIDList.length; ++i)
-                        {
-                            chunk = bufferChunksObj[chunkIDList[i]];
-
-                            chunkDataView = new Uint8Array(srcBodyView.buffer,
-                                                           srcBodyView.byteOffset + chunk["byteOffset"],
-                                                           chunk["byteLength"]);
-
-                            //upload chunk data to GPU
-                            gl.bufferSubData(bufferType, currentChunkDataOffset, chunkDataView);
-
-                            currentChunkDataOffset += chunk["byteLength"];
-                        }
-
-                        viewIDsToGLBufferIDs[bufferViewID] = newBuffer;
-                    }
-                }
-            },
 
             /**
              * Returns the node's local volume

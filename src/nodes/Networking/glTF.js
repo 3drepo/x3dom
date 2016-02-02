@@ -24,8 +24,7 @@ x3dom.registerNodeType(
          * @extends x3dom.nodeTypes.X3DGroupingNode
          * @param {Object} [ctx=null] - context object, containing initial settings like namespace
          * @classdesc glTF is a Grouping node that hosts a glTF (https://github.com/KhronosGroup/glTF) scene description.
-         * The scene graph described in the glTF header is instantiated as a set of X3DOM nodes, but created explicitly
-         * rather than via the XML DOM.
+         * The scene graph described in the glTF header is instantiated as a set of X3DOM nodes.
          */
         function (ctx) {
             x3dom.nodeTypes.glTF.superClass.call(this, ctx);
@@ -51,8 +50,7 @@ x3dom.registerNodeType(
             },
 
             /**
-             * Loads the scene graph defined in url as a child of the current node. This does not currently remove
-             * any existing nodes so do not call it twice.
+             * Starts the download of the glTF header file defined in the url attribute of the node
              */
             _load: function ()
             {
@@ -76,6 +74,11 @@ x3dom.registerNodeType(
                 }
             },
 
+            /**
+             * Parses the glTF header file and creates the scene graph. The scene graph is created by constructing
+             * and X3D DOM using an XMLDocument, and then processing this as a new scene. The resulting x3d graph is
+             * added as a child to this node.
+             */
             _onceLoaded: function(xhr){
 
                 var that = this;
@@ -93,7 +96,7 @@ x3dom.registerNodeType(
                 var sceneDom = that._createSceneDOM(scene);
 
                 //debug
-                 var xmlString = (new XMLSerializer()).serializeToString(sceneDom);
+                // var xmlString = (new XMLSerializer()).serializeToString(sceneDom);
 
                 // create the scene graph and add it to the current graph
                 var newScene = this._nameSpace.setupTree(sceneDom.documentElement);
@@ -155,8 +158,7 @@ x3dom.registerNodeType(
 
             /*
              * Creates a new X3DShape node, with the geometry and appearance elements initialised to new glTFGeometry and
-             * Appearance nodes. The content of the nodes are set by querying the ._gltf._header parameter for the
-             * properties of the mesh with the name/index 'meshname'
+             * Appearance nodes.
              */
             _createShapeNode: function(sceneDoc, meshname){
 
@@ -186,32 +188,6 @@ x3dom.registerNodeType(
                 materialNode.setAttribute("diffuseColor", "1 0 0");
 
                 return shapeNode;
-            },
-
-
-            handleTouch: function() {
-                var url = this._vf.url.length ? this._vf.url[0] : "";
-                var aPos = url.search("#");
-                var anchor = "";
-                if (aPos >= 0)
-                    anchor = url.slice(aPos+1);
-
-                var param = this._vf.parameter.length ? this._vf.parameter[0] : "";
-                var tPos = param.search("target=");
-                var target = "";
-                if (tPos >= 0)
-                    target = param.slice(tPos+7);
-
-                // TODO: implement #Viewpoint bind
-                // http://www.web3d.org/files/specifications/19775-1/V3.2/Part01/components/networking.html#Anchor
-                x3dom.debug.logInfo("Anchor url=" + url + ", target=" + target + ", #viewpoint=" + anchor);
-
-                if(target.length !=0 || target != "_self") {
-                    window.open(this._nameSpace.getURL(url), target);
-                }
-                else {
-                    window.location = this._nameSpace.getURL(url);
-                }
             }
         }
     )
