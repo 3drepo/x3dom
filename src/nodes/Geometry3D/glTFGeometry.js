@@ -97,6 +97,13 @@ x3dom.registerNodeType(
                 }
 
                 if(!that.gltfHeader){
+                    if(that._xmlNode.gltfHeader){
+                        that.gltfHeader = that._xmlNode.gltfHeader;
+                        that.gltfHeaderBaseURI = that._xmlNode.gltfHeaderBaseURI;
+                    }
+                }
+
+                if(!that.gltfHeader){
                     x3dom.debug.logError("Member glTFHeader must be set by glTF node for now");
                 }
 
@@ -109,6 +116,8 @@ x3dom.registerNodeType(
                 if(!requestedMesh){
                     x3dom.debug.logError("glTFGeometry node has an invalid mesh specified - mesh missing in header");
                 }
+
+                that._nameSpace.setBaseURL(that.gltfHeaderBaseURI);
 
                 that._downloadBuffers(function(){
                     that._updateRenderData(shape, shaderProgram, gl, requestedMesh);

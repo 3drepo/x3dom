@@ -66,6 +66,7 @@ x3dom.registerNodeType(
 
                     var uri = this._nameSpace.getURL(this._vf.url[0]);
 
+                    that._uri = uri;
                     that._path = uri.substr(0, uri.lastIndexOf('/') + 1);
 
                     //TODO: does this work for embedded (data:) uris?
@@ -88,62 +89,66 @@ x3dom.registerNodeType(
                 // get the scene object - this will be the graph thats added to the dom
                 var scene = header.scenes[header.scene];
 
-                // walk the scene graph (_createChild is recursive) to create x3d nodes
-                scene.nodes.forEach(
-                    function(element, number, array){
-                        that._createChild(that, header.nodes[element]);
-                });
+                // create the scene dom in x3d
+                var sceneDom = that._createSceneDOM(scene);
+
+                //debug
+                 var xmlString = (new XMLSerializer()).serializeToString(sceneDom);
+
+                // create the scene graph and add it to the current graph
+                var newScene = this._nameSpace.setupTree(sceneDom.documentElement);
+
+                that.addChild(newScene);
+                that.invalidateVolume();
+                that._nameSpace.doc.needRender = true;
             },
 
-            _createChild: function(x3dparent, gltfnode){
+            _createSceneDOM: function(scene){
 
                 var that    = this;
                 var header  = this._gltf._header;
 
-                // create a transform node to hold the mesh nodes and other child nodes
+                // create the xml document to hold the scene. Every node in the gltf scene graph (for now at least)
+                // is a transform. gltf scene nodes have a 'meshes' property - these meshes will be added as child
+                // Shape elements, under the Transform element, that is the scene node itself
 
-                var newNode = that._createTransformNode(gltfnode);
+                //todo: we could make this a scene node if we get the namespace setup right
+                var sceneDoc = document.implementation.createDocument(null, "Transform");
+                var sceneNode = sceneDoc.documentElement;
 
-                x3dparent.addChild(newNode, "children");
+                // walk the scene graph (_createChild is recursive) to create x3d nodes
+                scene.nodes.forEach(function(node) {
+                    sceneNode.appendChild(that._createChild(sceneDoc, header.nodes[node]));
+                });
+
+                return sceneDoc;
+            },
+
+            _createChild: function(sceneDoc, gltfNode){
+
+                var that    = this;
+                var header  = this._gltf._header;
+
+                // create a transform node to hold the mesh nodes and other child nodes. all gltf scene nodes are
+                // Transforms
+
+                var newNode = sceneDoc.createElement("Transform");
+
+                //todo: configure the transform attributes with the transformations from the grpah
 
                 // add any meshes of this node as as new glTFGeometry nodes
-
-                if(gltfnode.meshes) {
-                    gltfnode.meshes.forEach(
-                        function (element) {
-                            //todo: create a new containerfield for the meshes
-                            newNode.addChild(that._createShapeNode(element), "children");
-                        });
+                if(gltfNode.meshes) {
+                    gltfNode.meshes.forEach(function(mesh) {
+                        newNode.appendChild(that._createShapeNode(sceneDoc, mesh));
+                    });
                 }
 
                 // finally process all the children
-
-                if(gltfnode.children) {
-                    gltfnode.children.forEach(
-                        function (element) {
-                            that._createChild(newNode, header.nodes[element]);
-                        });
+                if(gltfNode.children) {
+                    gltfNode.children.forEach(function(child) {
+                        newNode.appendChild(that._createChild(sceneDoc, header.nodes[child]));
+                    });
                 }
-            },
-
-            _createTransformNode: function(gltfnode){
-
-                var that = this;
-
-                //TODO: another way to do this may be to update the xmldom itself?
-                var nodeType = x3dom.nodeTypesLC["transform"];
-                var ctx = {
-                    doc: that._nameSpace.doc,
-                    xmlNode: that._xmlNode,     //todo: this cannot be a good idea...
-                    nameSpace: that._nameSpace
-                };
-                var newNode = new nodeType(ctx);
-
-                if(gltfnode.name) {
-                    newNode.name = gltfnode.name;
-                }
-
-                // todo: initialise the transform matrix
 
                 return newNode;
             },
@@ -153,53 +158,30 @@ x3dom.registerNodeType(
              * Appearance nodes. The content of the nodes are set by querying the ._gltf._header parameter for the
              * properties of the mesh with the name/index 'meshname'
              */
-            _createShapeNode: function(meshname){
+            _createShapeNode: function(sceneDoc, meshname){
 
                 var that    = this;
                 var header  = this._gltf._header;
 
-                // create the shape node
+                // create the shape node - this will render a primitive
+                var shapeNode = sceneDoc.createElement("Shape");
 
-                var shape = that._makeNewNode("shape");
+                // create and apply the gltfgeometry node as the geometry part of the shape
+                var geometryNode = sceneDoc.createElement("glTFGeometry");
+                geometryNode.setAttribute("url", that._uri);
+                geometryNode.setAttribute("mesh", meshname);
+                //because the dom is being passed directly (not being encoded and parsed) we can pass objects
+                geometryNode.gltfHeader = header;
+                geometryNode.gltfHeaderBaseURI = that._path;
 
-                // initialise the geometry
+                shapeNode.appendChild(geometryNode);
 
-                var geometry = that._makeNewNode("gltfgeometry");
-                shape.addChild(geometry, "geometry");
+                // create and apply the appearance node from the mesh material
+                //todo: set the material
 
-                geometry.gltfHeader = that._gltf._header;
-
-                //todo: use the xmlNode member of ctx in _makeNewNode to pass in parameters (other than .gltfHeadaer, which is an object)
-                geometry._vf.mesh = meshname;
-
-                // initialise the appearance
-
-                var appearance = that._makeNewNode("appearance");
-         //       shape.addChild(appearance, "appearance");
-
-
-
-                return shape;
+                return shapeNode;
             },
 
-            _makeNewNode: function(nodeTypeName){
-
-                var that = this;
-
-                var gltfNamespace = new x3dom.NodeNameSpace(that._nameSpace.name, that._nameSpace.doc);
-                gltfNamespace.setBaseURL(that._path);
-
-                var nodeType = x3dom.nodeTypesLC[nodeTypeName];
-                var ctx = {
-                    doc: that._nameSpace.doc,
-                    xmlNode: that._xmlNode,     //todo: this cannot be a good idea...
-                    nameSpace: gltfNamespace
-                };
-                var newNode = new nodeType(ctx);
-
-                return newNode;
-
-            },
 
             handleTouch: function() {
                 var url = this._vf.url.length ? this._vf.url[0] : "";
