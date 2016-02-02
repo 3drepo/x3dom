@@ -168,6 +168,7 @@
                 ]},
                 {"name": "Networking", "filePrefix": "nodes/Networking/", "files":[
                     {"file": "Anchor.js"},
+                    {"file": "glTF.js"},
                     {"file": "Inline.js"},
                     {"file": "MultiPart.js"}
                 ]},
@@ -245,6 +246,7 @@
                     {"file": "Cone.js"},
                     {"file": "Cylinder.js"},
                     {"file": "ExternalGeometry.js"},
+                    {"file": "glTFGeometry.js"},
                     {"file": "X3DBinaryContainerGeometryNode.js"},
                     {"file": "BinaryGeometry.js"},
                     {"file": "PopGeometryLevel.js"},

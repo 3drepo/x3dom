@@ -443,6 +443,7 @@ x3dom.gfx_webgl = (function () {
         else if (!(x3dom.isa(geoNode, x3dom.nodeTypes.Text) ||
                    x3dom.isa(geoNode, x3dom.nodeTypes.BinaryGeometry) ||
                    x3dom.isa(geoNode, x3dom.nodeTypes.PopGeometry)    ||
+                   x3dom.isa(geoNode, x3dom.nodeTypes.glTFGeometry)   ||
                    x3dom.isa(geoNode, x3dom.nodeTypes.ExternalGeometry)) &&
                   (!geoNode || geoNode._mesh._positions[0].length < 1))
         {
@@ -573,7 +574,11 @@ x3dom.gfx_webgl = (function () {
         }
 
         // Binary container geometries need special handling
-        if (x3dom.isa(geoNode, x3dom.nodeTypes.ExternalGeometry))
+        if (x3dom.isa(geoNode, x3dom.nodeTypes.glTFGeometry))
+        {
+            geoNode.updateRenderData(shape, sp, gl, viewarea, this);
+        }
+        else if (x3dom.isa(geoNode, x3dom.nodeTypes.ExternalGeometry))
         {
             geoNode.updateRenderData(shape, sp, gl, viewarea, this);
         }
@@ -2472,6 +2477,8 @@ x3dom.gfx_webgl = (function () {
         for (var q = 0; q < q_n; q++) {
             var q6 = 6 * q;
 
+            //shader has the position property, and the geometry has position semantic, and either the indicies
+            //property is set or external geometry is being used
             if ( !(sp.position !== undefined && s_gl.buffers[q6 + 1] && (s_gl.indexes[q] || s_gl.externalGeometry != 0)) )
                 continue;
 
