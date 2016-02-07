@@ -41,6 +41,38 @@ x3dom.X3DDocument = function(canvas, ctx, settings) {
     this.onerror = function () {};
 };
 
+
+
+x3dom.X3DDocument.prototype.manageDownloads = function(downloads, callback)
+{
+    var that = this;
+
+    downloads.forEach( function(download){
+       download._complete = false;
+    });
+
+    var checkDownloads = function(){
+        var allComplete = true;
+        for(var i = 0; i < downloads.length; i++){
+            if(!downloads[i]._complete){
+                allComplete = false;
+            }
+        }
+        if(allComplete){
+            callback();
+        }
+    };
+
+    downloads.forEach( function(download){
+        that.manageDownload(download.uri, download.responseType, function(xhr){
+            download._complete = true;
+            download.destination._content = xhr.responseText;
+            checkDownloads();
+        });
+    });
+
+};
+
 x3dom.X3DDocument.prototype.manageDownload = function(url, responseType, callback)
 {
 	var that = this;

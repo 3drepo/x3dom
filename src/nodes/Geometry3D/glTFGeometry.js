@@ -242,7 +242,7 @@ x3dom.registerNodeType(
                     };
                 }
 
-                var shaderParameters = [
+                var shaderAttributes = [
                     shaderParameterCtor(POSITION_BUFFER_IDX, "POSITION", "coord", "Pos"),
                     shaderParameterCtor(NORMAL_BUFFER_IDX, "NORMAL", "normal", "Norm"),
                     shaderParameterCtor(TEXCOORD_BUFFER_IDX, "TEXCOORD_0", "texCoord", "Tex"),
@@ -250,7 +250,7 @@ x3dom.registerNodeType(
                     shaderParameterCtor(ID_BUFFER_IDX, "ID", "id", "Id")
                 ];
 
-                shaderParameters.forEach(function(attribute)
+                shaderAttributes.forEach(function(attribute)
                 {
                     if(primitive.attributes[attribute.Name]){
                         var attributeView = that._getAccessorView(primitive.attributes[attribute.Name], gl);
@@ -266,15 +266,14 @@ x3dom.registerNodeType(
 
                 // 5. handle special cases - hints for stats display and id
 
-                if(primitive.attributes[shaderParameters[0].Name]){
-                    var positionView = that._getAccessorView(primitive.attributes[shaderParameters[0].Name], gl);
+                if(primitive.attributes[shaderAttributes[0].Name]){
+                    var positionView = that._getAccessorView(primitive.attributes[shaderAttributes[0].Name], gl);
                     this._mesh._numCoords += positionView.elementCount;
                 }
 
-                if(primitive.attributes[shaderParameters[4].Name]){
+                if(primitive.attributes[shaderAttributes[4].Name]){
                     shape._cf.geometry.node._vf.idsPerVertex = true;
                 }
-
 
                 // 6. notify renderer
 

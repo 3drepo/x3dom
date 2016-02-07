@@ -67,6 +67,10 @@ x3dom.registerNodeType(
                     that._uri = uri;
                     that._path = uri.substr(0, uri.lastIndexOf('/') + 1);
 
+                    //all resources in the gltf are now relative to the gltf path
+                    //todo: check for side effects
+                    this._nameSpace.setBaseURL(that._path);
+
                     //TODO: does this work for embedded (data:) uris?
                     this._nameSpace.doc.manageDownload(uri, "text/json", function(xhr) {
                         that._onceLoaded(xhr);
@@ -84,9 +88,33 @@ x3dom.registerNodeType(
                 var that = this;
 
                 // set up the objects gltf specific properties
-                this._gltf = {};
-                this._gltf._header = JSON.parse(xhr.responseText);
+                that._gltf = {};
+                that._gltf._header = JSON.parse(xhr.responseText);
 
+                var header = that._gltf._header;
+
+                // download all the requisite resources before scene setup can begin (i.e. shaders & textures)
+
+                var downloads = [];
+
+                for(shadername in header.shaders){
+                    var shader = header.shaders[shadername];
+                    var download = {
+                        uri : that._nameSpace.getURL(shader.uri),
+                        responseType : "text",
+                        destination : shader
+                    };
+                    downloads.push(download);
+                }
+
+                this._nameSpace.doc.manageDownloads(downloads, function(){
+                    that._setupScene();
+                });
+            },
+
+            _setupScene: function(){
+
+                var that = this;
                 var header = this._gltf._header;
 
                 // get the scene object - this will be the graph thats added to the dom
@@ -96,10 +124,10 @@ x3dom.registerNodeType(
                 var sceneDom = that._createSceneDOM(scene);
 
                 //debug
-                // var xmlString = (new XMLSerializer()).serializeToString(sceneDom);
+                 var xmlString = (new XMLSerializer()).serializeToString(sceneDom);
 
                 // create the scene graph and add it to the current graph
-                var newScene = this._nameSpace.setupTree(sceneDom.documentElement);
+                var newScene = that._nameSpace.setupTree(sceneDom.documentElement);
 
                 that.addChild(newScene);
                 that.invalidateVolume();
@@ -181,13 +209,205 @@ x3dom.registerNodeType(
                 // create and apply the appearance node from the mesh material
                 //todo: set the material
 
-                var appearenceNode = sceneDoc.createElement("Appearance");
-                shapeNode.appendChild(appearenceNode);
-                var materialNode = sceneDoc.createElement("Material");
-                appearenceNode.appendChild(materialNode);
-                materialNode.setAttribute("diffuseColor", "1 0 0");
+                var materialName = header.meshes[meshname].primitives[0].material;
+                shapeNode.appendChild(that._createAppearanceNode(sceneDoc, materialName));
 
                 return shapeNode;
+            },
+
+            _createAppearanceNode: function(sceneDoc, materialName){
+
+                var that = this;
+                var header  = this._gltf._header;
+
+                var appearanceNode = sceneDoc.createElement("Appearance");
+
+                var material = header.materials[materialName];
+
+                if(material.technique){
+                    appearanceNode.appendChild(that._createComposedShader(sceneDoc, material));
+                }else{
+                    // if there is no technique, use the x3dom equivalent of the gltf default technique (matte gray)
+                    var materialNode = sceneDoc.createElement("Material");
+                    materialNode.setAttribute("diffuseColor", "0.5 0.5 0.5");
+                    appearanceNode.appendChild(materialNode);
+                }
+
+                return appearanceNode;
+            },
+
+            _createComposedShader: function(sceneDoc, material){
+
+                var that = this;
+                var header  = this._gltf._header;
+                var technique = header.techniques[material.technique];
+                var program = header.programs[technique.program];
+
+                if(!program){
+                    x3dom.debug.logError('glTF Technique must define a program');
+                }
+
+                var fragmentShader = header.shaders[program.fragmentShader];
+                var vertexShader = header.shaders[program.vertexShader];
+
+                if(!fragmentShader){
+                    x3dom.debug.logError('glTF Programs must define both a fragment shader and vertex shader');
+                }
+                if(!vertexShader){
+                    x3dom.debug.logError('glTF Programs must define both a fragment shader and vertex shader');
+                }
+
+                //._content member is set by manageDownloads which is invoked by the gltf node constructor above
+                var fragmentShaderSource = fragmentShader._content;
+                var vertexShaderSource = vertexShader._content;
+
+                fragmentShaderSource = that._preprocessShader(fragmentShaderSource);
+                vertexShaderSource = that._preprocessShader(vertexShaderSource);
+
+                var composedShaderNode = sceneDoc.createElement("ComposedShader");
+
+                // go through the uniforms list and find all the parameters defined in the material, in order to set
+                // their values through field elements
+
+                for(uniform in technique.uniforms){
+                    var parametername = technique.uniforms[uniform];
+                    var parameter = technique.parameters[parametername];
+
+                    if(!parameter.semantic){
+                        // if there is no semantic, it should be defined in the material
+                        if(material.values[parametername]){
+                            composedShaderNode.appendChild(that._createComposedShaderField(sceneDoc, uniform, parameter.type, material.values[parametername]));
+                        } else {
+                            x3dom.debug.logWarning("Technique contains parameters which will not be initialised.");
+                        }
+                    }
+                }
+
+                var vertexShaderPartNode = sceneDoc.createElement("ShaderPart");
+                composedShaderNode.appendChild(vertexShaderPartNode);
+                vertexShaderPartNode.setAttribute("type", "VERTEX");
+                var vertexShaderContentNode = sceneDoc.createTextNode(vertexShaderSource);
+                vertexShaderPartNode.appendChild(vertexShaderContentNode);
+
+                var fragmentShaderPartNode = sceneDoc.createElement("ShaderPart");
+                composedShaderNode.appendChild(fragmentShaderPartNode);
+                fragmentShaderPartNode.setAttribute("type", "FRAGMENT");
+                var fragmentShaderContentNode = sceneDoc.createTextNode(fragmentShaderSource);
+                fragmentShaderPartNode.appendChild(fragmentShaderContentNode);
+
+                return composedShaderNode;
+            },
+
+            /*
+             * Preprocess the shader to make it conform to the x3d api
+             */
+            _preprocessShader: function(shaderSource)
+            {
+                String.prototype.replaceTokens = function(original, replacement)
+                {
+                    var that = this;
+                    //http://regexr.com/
+                    return that.replace(new RegExp("\b(" + original + "\b", 'g'), replacement);
+                };
+
+           //     shaderSource = shaderSource.replaceTokens("u_diffuse","diffuseColor");
+
+                return shaderSource;
+            },
+
+            _createComposedShaderField: function(sceneDoc, uniformName, uniformType, uniformValue){
+
+                var fieldnode = sceneDoc.createElement("field");
+
+                fieldnode.setAttribute("name",uniformName);
+                fieldnode.setAttribute("type", this._getX3DType(uniformType, uniformValue));
+                fieldnode.setAttribute("value", uniformValue.toString());
+
+                return fieldnode;
+            },
+
+
+            /*
+             * Identify a suitable x3d type for x3dom to interpet the value as. This type should be such that
+             * when sent to WebGL, it is of the type expected by the shader.
+             * Use the mapping http://www.web3d.org/documents/specifications/19775-1/V3.2/Part01/shaders_glsl.html#Otherfields
+             * to find which x3d types will 'serialise' to the desired GL type.
+             * Ensure that not only are supported x3d types are returned (http://www.web3d.org/documents/specifications/19775-1/V3.2/Part01/fieldsDef.html#SFVec2dAndMFVec2d),
+             * but that only the subset supported by the X3DNode addField_[] methods are returned (@X3DNode.js, ln 353)
+             * See here for a list of all GL types that the user may request in the shader: https://gist.github.com/szimek/763999
+             */
+            _getX3DType: function(glType, x3dValue){
+
+                switch (glType){
+                    case WebGLRenderingContext.BOOL:
+                        if(Array.isArray(x3dValue)){
+                            return "MFBoolean";
+                        }else{
+                            return "SFBool";
+                        }
+                    // x3d does not have a concept of a vector of booleans, so send them as an array
+                    case WebGLRenderingContext.BOOL_VEC2:
+                        return "MFBoolean";
+                    case WebGLRenderingContext.BOOL_VEC3:
+                        return "MFBoolean";
+                    case WebGLRenderingContext.BOOL_VEC4:
+                        return "MFBoolean";
+
+                    case WebGLRenderingContext.INT:
+                        if(Array.isArray(x3dValue)){
+                            return "MFInt32";
+                        }else{
+                            return "SFInt32";
+                        }
+                    case WebGLRenderingContext.INT_VEC2:
+                        return "MFInt32";
+                    case WebGLRenderingContext.INT_VEC3:
+                        return "MFInt32";
+                    case WebGLRenderingContext.INT_VEC4:
+                        return "MFInt32";
+
+                    case WebGLRenderingContext.FLOAT:
+                        if(Array.isArray(x3dValue)){
+                            return "MFFloat";
+                        }else{
+                            return "SFFloat";
+                        }
+                    case WebGLRenderingContext.FLOAT_VEC2:
+                        if(Array.isArray(x3dValue)){
+                            return "MFVec2f";
+                        }else{
+                            return "SFVec2f";
+                        }
+                    case WebGLRenderingContext.FLOAT_VEC3:
+                        if(Array.isArray(x3dValue)){
+                            return "MFVec3f";
+                        }else{
+                            return "SFVec3f";
+                        }
+                    case WebGLRenderingContext.FLOAT_VEC4:
+                        if(Array.isArray(x3dValue)){
+                            return "MFFloat";
+                        }else{
+                            return "MFFloat";
+                        }
+
+                    case WebGLRenderingContext.FLOAT_MAT2:
+                        return "MFFloat";
+                    case WebGLRenderingContext.FLOAT_MAT3:
+                        if(Array.isArray(x3dValue)){
+                            return "MFFloat";
+                        }else{
+                            return "MFFloat";
+                        }
+                    case WebGLRenderingContext.FLOAT_MAT4:
+                        if(Array.isArray(x3dValue)){
+                            return "MFFloat";
+                        }else{
+                            return "SFMatrix4f";
+                        }
+                }
+
+
             }
         }
     )
