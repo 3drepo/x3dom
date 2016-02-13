@@ -1,0 +1,417 @@
+{
+    "asset": {
+        "generator": "3D Repo Bouncer v1.0a",
+        "version": "1.0"
+    },
+    "scene": "defaultScene",
+    "scenes": {
+        "defaultScene": {
+            "nodes": [
+                "eef50933-f189-4704-986f-d371e2bf752c"
+            ]
+        }
+    },
+    "bufferViews": {
+        "bufv_bb44e353-675c-4948-a2c6-d312b120de6a_n": {
+            "buffer": "bb44e353-675c-4948-a2c6-d312b120de6a",
+            "byteLength": 4224,
+            "byteOffset": 0,
+            "target": 34962,
+            "extras": {
+                "refID": "bb44e353-675c-4948-a2c6-d312b120de6a_0"
+            }
+        },
+        "bufv_bb44e353-675c-4948-a2c6-d312b120de6a_p": {
+            "buffer": "bb44e353-675c-4948-a2c6-d312b120de6a",
+            "byteLength": 4224,
+            "byteOffset": 4224,
+            "target": 34962,
+            "extras": {
+                "refID": "bb44e353-675c-4948-a2c6-d312b120de6a_0"
+            }
+        },
+        "bufv_bb44e353-675c-4948-a2c6-d312b120de6a_f": {
+            "buffer": "bb44e353-675c-4948-a2c6-d312b120de6a",
+            "byteLength": 1032,
+            "byteOffset": 8448,
+            "target": 34963,
+            "extras": {
+                "refID": "bb44e353-675c-4948-a2c6-d312b120de6a_0"
+            }
+        },
+        "bufv_bb44e353-675c-4948-a2c6-d312b120de6a_uv_0": {
+            "buffer": "bb44e353-675c-4948-a2c6-d312b120de6a",
+            "byteLength": 2816,
+            "byteOffset": 9480,
+            "target": 34962,
+            "extras": {
+                "refID": "bb44e353-675c-4948-a2c6-d312b120de6a_0"
+            }
+        }
+    },
+    "accessors": {
+        "acc_bb44e353-675c-4948-a2c6-d312b120de6a_0_m0_f": {
+            "bufferView": "bufv_bb44e353-675c-4948-a2c6-d312b120de6a_f",
+            "byteOffset": 0,
+            "byteStride": 0,
+            "componentType": 5123,
+            "count": 384,
+            "min": [
+                0
+            ],
+            "max": [
+                255
+            ],
+            "type": "SCALAR",
+            "extras": {
+                "refID": "fce5665e-f351-4993-8771-dc8d76ffd51b"
+            }
+        },
+        "acc_bb44e353-675c-4948-a2c6-d312b120de6a_0_m0_n": {
+            "bufferView": "bufv_bb44e353-675c-4948-a2c6-d312b120de6a_n",
+            "byteOffset": 0,
+            "byteStride": 12,
+            "componentType": 5126,
+            "count": 256,
+            "min": [
+                -1,
+                -1,
+                -1
+            ],
+            "max": [
+                1,
+                1,
+                1
+            ],
+            "type": "VEC3",
+            "extras": {
+                "refID": "fce5665e-f351-4993-8771-dc8d76ffd51b"
+            }
+        },
+        "acc_bb44e353-675c-4948-a2c6-d312b120de6a_0_m0_p": {
+            "bufferView": "bufv_bb44e353-675c-4948-a2c6-d312b120de6a_p",
+            "byteOffset": 0,
+            "byteStride": 12,
+            "componentType": 5126,
+            "count": 256,
+            "min": [
+                -0.5,
+                -0.5,
+                -0.5
+            ],
+            "max": [
+                0.5,
+                0.5,
+                0.5
+            ],
+            "type": "VEC3",
+            "extras": {
+                "refID": "fce5665e-f351-4993-8771-dc8d76ffd51b"
+            }
+        },
+        "acc_bb44e353-675c-4948-a2c6-d312b120de6a_0_m0_uv_0": {
+            "bufferView": "bufv_bb44e353-675c-4948-a2c6-d312b120de6a_uv_0",
+            "byteOffset": 0,
+            "byteStride": 8,
+            "componentType": 5126,
+            "count": 256,
+            "min": [
+                -0.000750000007,
+                -0.00132583
+            ],
+            "max": [
+                1.00076997,
+                0.998673975
+            ],
+            "type": "VEC2",
+            "extras": {
+                "refID": "fce5665e-f351-4993-8771-dc8d76ffd51b"
+            }
+        },
+        "acc_bb44e353-675c-4948-a2c6-d312b120de6a_0_m1_f": {
+            "bufferView": "bufv_bb44e353-675c-4948-a2c6-d312b120de6a_f",
+            "byteOffset": 768,
+            "byteStride": 0,
+            "componentType": 5123,
+            "count": 132,
+            "min": [
+                256
+            ],
+            "max": [
+                351
+            ],
+            "type": "SCALAR",
+            "extras": {
+                "refID": "2390cd47-6a33-4b13-9230-9003b34b1653"
+            }
+        },
+        "acc_bb44e353-675c-4948-a2c6-d312b120de6a_0_m1_n": {
+            "bufferView": "bufv_bb44e353-675c-4948-a2c6-d312b120de6a_n",
+            "byteOffset": 3072,
+            "byteStride": 12,
+            "componentType": 5126,
+            "count": 96,
+            "min": [
+                -1,
+                -1,
+                -1
+            ],
+            "max": [
+                1,
+                1,
+                1
+            ],
+            "type": "VEC3",
+            "extras": {
+                "refID": "2390cd47-6a33-4b13-9230-9003b34b1653"
+            }
+        },
+        "acc_bb44e353-675c-4948-a2c6-d312b120de6a_0_m1_p": {
+            "bufferView": "bufv_bb44e353-675c-4948-a2c6-d312b120de6a_p",
+            "byteOffset": 3072,
+            "byteStride": 12,
+            "componentType": 5126,
+            "count": 96,
+            "min": [
+                -0.335040003,
+                -0.5,
+                -0.335040003
+            ],
+            "max": [
+                0.335040003,
+                0.5,
+                0.335040003
+            ],
+            "type": "VEC3",
+            "extras": {
+                "refID": "2390cd47-6a33-4b13-9230-9003b34b1653"
+            }
+        },
+        "acc_bb44e353-675c-4948-a2c6-d312b120de6a_0_m1_uv_0": {
+            "bufferView": "bufv_bb44e353-675c-4948-a2c6-d312b120de6a_uv_0",
+            "byteOffset": 2048,
+            "byteStride": 8,
+            "componentType": 5126,
+            "count": 96,
+            "min": [
+                0.344375014,
+                0.094418101
+            ],
+            "max": [
+                0.405624986,
+                0.905582011
+            ],
+            "type": "VEC2",
+            "extras": {
+                "refID": "2390cd47-6a33-4b13-9230-9003b34b1653"
+            }
+        }
+    },
+    "meshes": {
+        "bb44e353-675c-4948-a2c6-d312b120de6a_0": {
+            "primitives": [
+                {
+                    "material": "89e4d028-9353-4e0e-8d6e-0f9dd7cf0160",
+                    "mode": 4,
+                    "indices": "acc_bb44e353-675c-4948-a2c6-d312b120de6a_0_m0_f",
+                    "attributes": {
+                        "NORMAL": "acc_bb44e353-675c-4948-a2c6-d312b120de6a_0_m0_n",
+                        "POSITION": "acc_bb44e353-675c-4948-a2c6-d312b120de6a_0_m0_p",
+                        "TEXCOORD_0": "acc_bb44e353-675c-4948-a2c6-d312b120de6a_0_m0_uv_0"
+                    },
+                    "extras": {
+                        "refID": "fce5665e-f351-4993-8771-dc8d76ffd51b"
+                    }
+                },
+                {
+                    "material": "38f99b73-32f7-4c29-98b8-d5800012ad3e",
+                    "mode": 4,
+                    "indices": "acc_bb44e353-675c-4948-a2c6-d312b120de6a_0_m1_f",
+                    "attributes": {
+                        "NORMAL": "acc_bb44e353-675c-4948-a2c6-d312b120de6a_0_m1_n",
+                        "POSITION": "acc_bb44e353-675c-4948-a2c6-d312b120de6a_0_m1_p",
+                        "TEXCOORD_0": "acc_bb44e353-675c-4948-a2c6-d312b120de6a_0_m1_uv_0"
+                    },
+                    "extras": {
+                        "refID": "2390cd47-6a33-4b13-9230-9003b34b1653"
+                    }
+                }
+            ]
+        }
+    },
+    "nodes": {
+        "f1131872-ecfc-41b0-bcad-45eadf72c7cd": {
+            "name": "mesh_0",
+            "meshes": [
+                "bb44e353-675c-4948-a2c6-d312b120de6a_0"
+            ]
+        },
+        "51193862-dcdc-485d-8d8b-910be040cb89": {
+            "name": "Directional_Light"
+        },
+        "3f97e8f8-017b-442b-821b-df7990cb8159": {
+            "name": "Render"
+        },
+        "eef50933-f189-4704-986f-d371e2bf752c": {
+            "name": "<dummy_root>",
+            "children": [
+                "3f97e8f8-017b-442b-821b-df7990cb8159",
+                "51193862-dcdc-485d-8d8b-910be040cb89",
+                "f1131872-ecfc-41b0-bcad-45eadf72c7cd"
+            ]
+        }
+    },
+    "techniques": {
+        "default_technique": {
+            "parameters": {
+                "modelViewMatrix": {
+                    "semantic": "MODELVIEW",
+                    "type": 35676
+                },
+                "normal": {
+                    "semantic": "NORMAL",
+                    "type": 35665
+                },
+                "normalMatrix": {
+                    "semantic": "MODELVIEWINVERSETRANSPOSE",
+                    "type": 35675
+                },
+                "position": {
+                    "semantic": "POSITION",
+                    "type": 35665
+                },
+                "projectionMatrix": {
+                    "semantic": "PROJECTION",
+                    "type": 35676
+                },
+                "shininess": {
+                    "type": 5126
+                },
+                "diffuse": {
+                    "type": 35666
+                },
+                "specular": {
+                    "type": 35666
+                }
+            },
+            "program": "default_program",
+            "states": {
+                "enable": [
+                    2929,
+                    2884
+                ]
+            },
+            "uniforms": {
+                "u_diffuse": "diffuse",
+                "u_modelViewMatrix": "modelViewMatrix",
+                "u_normalMatrix": "normalMatrix",
+                "u_projectionMatrix": "projectionMatrix",
+                "u_shininess": "shininess",
+                "u_specular": "specular"
+            },
+            "attributes": {
+                "a_normal": "normal",
+                "a_position": "position"
+            }
+        }
+    },
+    "programs": {
+        "default_program": {
+            "attributes": [
+                "a_normal",
+                "a_position"
+            ],
+            "fragmentShader": "default_fshader",
+            "vertexShader": "default_vshader"
+        }
+    },
+    "shaders": {
+        "default_fshader": {
+            "type": 35632,
+            "uri": "fragShader.glsl"
+        },
+        "default_vshader": {
+            "type": 35633,
+            "uri": "vertShader.glsl"
+        }
+    },
+    "materials": {
+        "89e4d028-9353-4e0e-8d6e-0f9dd7cf0160": {
+            "technique": "default_technique",
+            "values": {
+                "ambient": [
+                    0.100000001,
+                    0.100000001,
+                    0.100000001,
+                    1
+                ],
+                "diffuse": [
+                    0.301604003,
+                    0.533541977,
+                    0.800000012,
+                    1
+                ],
+                "emission": [
+                    0,
+                    0,
+                    0,
+                    1
+                ],
+                "specular": [
+                    0.200000003,
+                    0.200000003,
+                    0.200000003,
+                    1
+                ],
+                "shininess": 256
+            },
+            "name": "outer"
+        },
+        "38f99b73-32f7-4c29-98b8-d5800012ad3e": {
+            "technique": "default_technique",
+            "values": {
+                "ambient": [
+                    0.100000001,
+                    0.100000001,
+                    0.100000001,
+                    1
+                ],
+                "diffuse": [
+                    0.800000012,
+                    0.415942013,
+                    0.79529202,
+                    1
+                ],
+                "emission": [
+                    0,
+                    0,
+                    0,
+                    1
+                ],
+                "specular": [
+                    0.200000003,
+                    0.200000003,
+                    0.200000003,
+                    1
+                ],
+                "shininess": 256
+            },
+            "name": "inner"
+        }
+    },
+    "samplers": {
+        "default_sampler": {
+            "magFilter": 9729,
+            "minFilter": 9987,
+            "wrapS": 10497,
+            "wrapT": 10497
+        }
+    },
+    "buffers": {
+        "bb44e353-675c-4948-a2c6-d312b120de6a": {
+            "byteLength": 12296,
+            "type": "arraybuffer",
+            "uri": "bb44e353-675c-4948-a2c6-d312b120de6a.bin"
+        }
+    }
+}

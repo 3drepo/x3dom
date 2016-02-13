@@ -1995,6 +1995,11 @@ x3dom.gfx_webgl = (function () {
         var s_gl = shape._webgl;
         var sp = s_gl.shader;
 
+        // if this is a gltf multipart, check if it needs an update
+        if(shape.updateMultipart){
+            shape.updateMultipart(gl);
+        }
+
         if (!sp) {
             x3dom.debug.logError("[Context|RenderShape] No Shader is set!");
             return;
