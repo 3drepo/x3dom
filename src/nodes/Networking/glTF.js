@@ -261,9 +261,6 @@ x3dom.registerNodeType(
                 var fragmentShaderSource = fragmentShader._content;
                 var vertexShaderSource = vertexShader._content;
 
-                fragmentShaderSource = that._preprocessShader(fragmentShaderSource);
-                vertexShaderSource = that._preprocessShader(vertexShaderSource);
-
                 var composedShaderNode = sceneDoc.createElement("ComposedShader");
 
                 // go through the uniforms list and find all the parameters defined in the material, in order to set
@@ -296,23 +293,6 @@ x3dom.registerNodeType(
                 fragmentShaderPartNode.appendChild(fragmentShaderContentNode);
 
                 return composedShaderNode;
-            },
-
-            /*
-             * Preprocess the shader to make it conform to the x3d api
-             */
-            _preprocessShader: function(shaderSource)
-            {
-                String.prototype.replaceTokens = function(original, replacement)
-                {
-                    var that = this;
-                    //http://regexr.com/
-                    return that.replace(new RegExp("\b(" + original + "\b", 'g'), replacement);
-                };
-
-           //     shaderSource = shaderSource.replaceTokens("u_diffuse","diffuseColor");
-
-                return shaderSource;
             },
 
             _createComposedShaderField: function(sceneDoc, uniformName, uniformType, uniformValue){
