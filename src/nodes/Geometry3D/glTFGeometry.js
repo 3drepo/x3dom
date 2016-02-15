@@ -500,7 +500,7 @@ x3dom.registerNodeType(
                     var attributes = primitive.attributes;
                     var primitives = primitive.primitives;
 
-                    primitives[1]._visible = false;
+                    primitives[0]._visible = false;
 
                     // 1. update the vertex data building new gl buffers containing only the visible multipart data
 
@@ -546,10 +546,6 @@ x3dom.registerNodeType(
 
                     // 2. update the index buffers
 
-
-
-
-
                     chunks = [];
                     bufferSpaceRequired = 0;
 
@@ -568,8 +564,8 @@ x3dom.registerNodeType(
                     var indexBufferOffset = 0;
                     var totalIndices = 0;
 
-                    for(var i = 0; i < chunks.length; i++) {
-                        var chunk = chunks[i];
+                    for(var c = 0; c < chunks.length; c++) {
+                        var chunk = chunks[c];
                         // get a copy of the indices (relative to the chunk)
                         var indexChunkData = chunk.indexDataView.slice();
 
