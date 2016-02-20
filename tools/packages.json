@@ -19,6 +19,7 @@
                 {"path": "util/DrawableCollection.js"},
 				{"path": "util/Moveable.js"},
 				{"path": "util/Zlib.js"},
+                {"path": "util/GraphicsMemoryManager.js"},
                 {"path": "X3DCanvas.js"},
                 {"path": "Runtime.js"},
                 {"path": "Main.js"},
