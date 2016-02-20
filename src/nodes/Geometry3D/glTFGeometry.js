@@ -470,7 +470,11 @@ x3dom.registerNodeType(
                     multipart.primitives[i]._visible = true;
                 }
 
-               // multipart.primitives[1]._visible = false;
+            //    multipart.primitives[12]._visible = false;
+            //    multipart.primitives[150]._visible = false;
+            //    multipart.primitives[80]._visible = false;
+            //    multipart.primitives[59]._visible = false;
+
 
                 that._rebuildMultipart(multipart);
 
@@ -810,7 +814,7 @@ x3dom.registerNodeType(
                 var header = that.gltfHeader;
                 var bufferView = header.bufferViews[bufferViewId];
 
-                var bufferData = that._bufferData[bufferView.buffer].content.subarray(bufferView.byteOffset, bufferView.byteOffset + bufferView.byteLength);
+                var bufferData = that._bufferData[bufferView.buffer].content.slice(bufferView.byteOffset, bufferView.byteOffset + bufferView.byteLength);
 
                 return bufferData;
             },
