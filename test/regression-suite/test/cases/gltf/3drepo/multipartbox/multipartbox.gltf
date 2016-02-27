@@ -274,7 +274,7 @@
                 },
                 "normalMatrix": {
                     "semantic": "MODELVIEWINVERSETRANSPOSE",
-                    "type": 35675
+                    "type": 35676
                 },
                 "position": {
                     "semantic": "POSITION",
@@ -303,15 +303,22 @@
             },
             "uniforms": {
                 "u_diffuse": "diffuse",
-                "u_modelViewMatrix": "modelViewMatrix",
-                "u_normalMatrix": "normalMatrix",
-                "u_projectionMatrix": "projectionMatrix",
+                "modelViewMatrix": "modelViewMatrix",
+                "normalMatrix": "normalMatrix",
+                "projectionMatrix": "projectionMatrix",
                 "u_shininess": "shininess",
                 "u_specular": "specular"
             },
             "attributes": {
-                "a_normal": "normal",
-                "a_position": "position"
+                "normal": "normal",
+                "position": "position"
+            },
+            "extras": {
+                "varyings":{
+                    "v_normal": {
+                        "type": 35665
+                    }
+                }
             }
         }
     },
@@ -328,11 +335,39 @@
     "shaders": {
         "default_fshader": {
             "type": 35632,
-            "uri": "fragShader.glsl"
+            "uri": "fragShader.glsl",
+            "extras": {
+                "x3domShaderFunction":{
+                    "uri":"x3domFragShader.glsl",
+                    "name":"x3dmain",
+                    "parameters":[
+                        "v_normal",
+                        "u_diffuse",
+                        "u_specular",
+                        "u_shininess"
+                    ],
+                    "returns":"gl_FragColor"
+                }
+            }
         },
         "default_vshader": {
             "type": 35633,
-            "uri": "vertShader.glsl"
+            "uri": "vertShader.glsl",
+            "extras":{
+                "x3domShaderFunction": {
+                    "uri":"x3domVertShader.glsl",
+                    "name":"x3dmain",
+                    "parameters":[
+                        "position",
+                        "normal",
+                        "v_normal",
+                        "normalMatrix",
+                        "modelViewMatrix",
+                        "projectionMatrix"
+                    ],
+                    "returns":"gl_Position"
+                }
+            }
         }
     },
     "materials": {

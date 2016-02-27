@@ -94,6 +94,7 @@ x3dom.registerNodeType(
                 var header = that._gltf._header;
 
                 // download all the requisite resources before scene setup can begin (i.e. shaders & textures)
+                // the response will be placed in the _content member of the object provided as 'destination'
 
                 var downloads = [];
 
@@ -105,6 +106,20 @@ x3dom.registerNodeType(
                         destination : shader
                     };
                     downloads.push(download);
+
+                    if(shader.extras)
+                    {
+                        if(shader.extras.x3domShaderFunction)
+                        {
+                            var x3domShader = shader.extras.x3domShaderFunction;
+                            var download = {
+                                uri : that._nameSpace.getURL(x3domShader.uri),
+                                responseType : "text",
+                                destination : x3domShader
+                            };
+                            downloads.push(download);
+                        }
+                    }
                 }
 
                 this._nameSpace.doc.manageDownloads(downloads, function(){
@@ -257,9 +272,20 @@ x3dom.registerNodeType(
                     x3dom.debug.logError('glTF Programs must define both a fragment shader and vertex shader');
                 }
 
-                //._content member is set by manageDownloads which is invoked by the gltf node constructor above
                 var fragmentShaderSource = fragmentShader._content;
                 var vertexShaderSource = vertexShader._content;
+
+                if (fragmentShader.extras) {
+                    if (fragmentShader.extras.x3domShaderFunction) {
+                        fragmentShaderSource = that._buildSingleShader(fragmentShader.extras.x3domShaderFunction, technique);
+                    }
+                }
+
+                if (vertexShader.extras) {
+                    if (vertexShader.extras.x3domShaderFunction) {
+                        vertexShaderSource = that._buildSingleShader(vertexShader.extras.x3domShaderFunction, technique);
+                    }
+                }
 
                 var composedShaderNode = sceneDoc.createElement("ComposedShader");
 
@@ -306,6 +332,81 @@ x3dom.registerNodeType(
                 return fieldnode;
             },
 
+            /* Wraps the function specified in the shaderFunction object in a shader suitable for shading a typical mesh.
+             * This will use the uniforms/attributes/parameters objects of the gltf header along with shaderSource to
+             * build the shader. */
+            _buildSingleShader: function(shaderFunction, technique)
+            {
+                var that = this;
+                var header  = this._gltf._header;
+
+                var parameters = technique.parameters;
+                var attributes = technique.attributes;
+                var uniforms = technique.uniforms;
+                var varyings = technique.extras.varyings; //must be present even if there are none
+
+                var functionParameters = shaderFunction.parameters;
+
+                var source = "";
+
+                //define the headers
+                source += "#define X3DOM" + '\n';
+                source += "precision highp float;" + '\n';
+
+                //write the attributes
+                for(var varname in attributes)
+                {
+                    if(functionParameters.indexOf(varname) >= 0) {
+                        source += "attribute " + that._getGLSLType(parameters[attributes[varname]].type) + " " + varname + ";\n";
+                    }
+                }
+
+                //write the uniforms
+                for(var varname in uniforms)
+                {
+                    if(functionParameters.indexOf(varname) >= 0) {
+                        source += "uniform " + that._getGLSLType(parameters[uniforms[varname]].type) + " " + varname + ";\n";
+                    }
+                }
+
+                //write the varyings
+                for(var varname in varyings)
+                {
+                    if(functionParameters.indexOf(varname) >= 0) {
+                        source += "varying " + that._getGLSLType(varyings[varname].type) + " " + varname + ";\n";
+                    }
+                }
+
+                source += "\n\n";
+                //write the main function...
+
+                var main = "";
+
+                main += "void main(){\n";
+
+                var functionCall = "";
+                functionCall += shaderFunction.name + "(";
+                for(var i = 0; i < functionParameters.length; i++)
+                {
+                    functionCall += functionParameters[i];
+                    if(i < functionParameters.length - 1){
+                        functionCall += ",";
+                    }
+                }
+                functionCall += ");";
+
+                main += shaderFunction.returns + " = " + functionCall + "\n";
+
+                main += "}\n";
+
+                //finally put it together
+
+                source += shaderFunction._content + "\n\n";
+
+                source += main;
+
+                return source;
+            },
 
             /*
              * Identify a suitable x3d type for x3dom to interpet the value as. This type should be such that
@@ -386,8 +487,47 @@ x3dom.registerNodeType(
                             return "SFMatrix4f";
                         }
                 }
+            },
 
+            /*
+             * Identify the equivalent GLSL type name for the type enumeration. These are defined in the GLSL language
+             * spec (e.g. http://oss.sgi.com/projects/ogl-sample/registry/ARB/GLSLangSpec.Full.1.10.59.pdf)
+             */
+            //todo: are these not defined elsewhere as part of webgl??
+            _getGLSLType: function(glType){
 
+                switch (glType){
+                    case WebGLRenderingContext.BOOL:
+                        return "bool";
+                    case WebGLRenderingContext.BOOL_VEC2:
+                        return "bvec2";
+                    case WebGLRenderingContext.BOOL_VEC3:
+                        return "bvec3";
+                    case WebGLRenderingContext.BOOL_VEC4:
+                        return "bvec4";
+                    case WebGLRenderingContext.INT:
+                        return "int";
+                    case WebGLRenderingContext.INT_VEC2:
+                        return "ivec2";
+                    case WebGLRenderingContext.INT_VEC3:
+                        return "ivec3";
+                    case WebGLRenderingContext.INT_VEC4:
+                        return "ivec4";
+                    case WebGLRenderingContext.FLOAT:
+                        return "float";
+                    case WebGLRenderingContext.FLOAT_VEC2:
+                        return "vec2";
+                    case WebGLRenderingContext.FLOAT_VEC3:
+                        return "vec3";
+                    case WebGLRenderingContext.FLOAT_VEC4:
+                        return "vec4";
+                    case WebGLRenderingContext.FLOAT_MAT2:
+                        return "mat2";
+                    case WebGLRenderingContext.FLOAT_MAT3:
+                        return "mat3";
+                    case WebGLRenderingContext.FLOAT_MAT4:
+                        return "mat4";
+                }
             }
         }
     )
