@@ -129,8 +129,14 @@ x3dom.registerNodeType(
             nodeChanged: function ()
             {
                 if (!this.initDone) {
-                    this.initDone = true;
-                    this.loadIDMap();
+                    if(this._xmlNode._idMap & this._xmlNode._inlScene){
+                        // if these have been set programatically, then theres no need to download them
+                        this.applyIDMap(this._xmlNode._idMap);
+                        this.applyInline(this._xmlNode._inlScene);
+                    }else {
+                        this.initDone = true;
+                        this.loadIDMap();
+                    }
                 }
             },
             
@@ -248,13 +254,62 @@ x3dom.registerNodeType(
 
             },
 
+            applyIDMap: function(idMap)
+            {
+                var that = this;
+
+                that._idMap = idMap;
+
+                //Check if the MultiPart map already initialized
+                if (that._nameSpace.doc._scene._multiPartMap == null) {
+                    that._nameSpace.doc._scene._multiPartMap = {numberOfIds: 0, multiParts: []};
+                }
+
+                //Set the ID range this MultiPart is holding
+                that._minId = that._nameSpace.doc._scene._multiPartMap.numberOfIds;
+                that._maxId = that._minId + that._idMap.numberOfIDs - 1;
+
+                //Update the MultiPart map
+                that._nameSpace.doc._scene._multiPartMap.numberOfIds += that._idMap.numberOfIDs;
+                that._nameSpace.doc._scene._multiPartMap.multiParts.push(that);
+
+                //prepare internal shape map
+                for (i=0; i<that._idMap.mapping.length; i++)
+                {
+                    if (!that._identifierToPartId[that._idMap.mapping[i].name]) {
+                        that._identifierToPartId[that._idMap.mapping[i].name] = [];
+                    }
+
+                    if (!that._identifierToPartId[that._idMap.mapping[i].appearance]) {
+                        that._identifierToPartId[that._idMap.mapping[i].appearance] = [];
+                    }
+
+                    that._identifierToPartId[that._idMap.mapping[i].name].push(i);
+                    that._identifierToPartId[that._idMap.mapping[i].appearance].push(i);
+
+                    if (!that._partVolume[i]) {
+                        var min = x3dom.fields.SFVec3f.parse(that._idMap.mapping[i].min);
+                        var max = x3dom.fields.SFVec3f.parse(that._idMap.mapping[i].max);
+
+                        that._partVolume[i] = new x3dom.fields.BoxVolume(min, max);
+                    }
+
+                }
+
+                //prepare internal appearance map
+                for (i=0; i<that._idMap.appearance.length; i++)
+                {
+                    that._identifierToAppId[that._idMap.appearance[i].name] = i;
+                }
+            },
+
             loadIDMap: function ()
             {
+                var that = this;
+
                 if (this._vf.urlIDMap.length && this._vf.urlIDMap[0].length)
                 {
                     var i;
-
-                    var that = this;
 
                     var idMapURI = this._nameSpace.getURL(this._vf.urlIDMap[0]);
 
@@ -264,50 +319,7 @@ x3dom.registerNodeType(
 
                     xhr.onload = function()
                     {
-                        that._idMap = JSON.parse(this.responseText);
-
-                        //Check if the MultiPart map already initialized
-                        if (that._nameSpace.doc._scene._multiPartMap == null) {
-                            that._nameSpace.doc._scene._multiPartMap = {numberOfIds: 0, multiParts: []};
-                        }
-
-                        //Set the ID range this MultiPart is holding
-                        that._minId = that._nameSpace.doc._scene._multiPartMap.numberOfIds;
-                        that._maxId = that._minId + that._idMap.numberOfIDs - 1;
-
-                        //Update the MultiPart map
-                        that._nameSpace.doc._scene._multiPartMap.numberOfIds += that._idMap.numberOfIDs;
-                        that._nameSpace.doc._scene._multiPartMap.multiParts.push(that);
-
-                        //prepare internal shape map
-                        for (i=0; i<that._idMap.mapping.length; i++)
-                        {
-                            if (!that._identifierToPartId[that._idMap.mapping[i].name]) {
-                                that._identifierToPartId[that._idMap.mapping[i].name] = [];
-                            }
-
-                            if (!that._identifierToPartId[that._idMap.mapping[i].appearance]) {
-                                that._identifierToPartId[that._idMap.mapping[i].appearance] = [];
-                            }
-
-                            that._identifierToPartId[that._idMap.mapping[i].name].push(i);
-                            that._identifierToPartId[that._idMap.mapping[i].appearance].push(i);
-
-                            if (!that._partVolume[i]) {
-                                var min = x3dom.fields.SFVec3f.parse(that._idMap.mapping[i].min);
-                                var max = x3dom.fields.SFVec3f.parse(that._idMap.mapping[i].max);
-
-                                that._partVolume[i] = new x3dom.fields.BoxVolume(min, max);
-                            }
-
-                        }
-
-                        //prepare internal appearance map
-                        for (i=0; i<that._idMap.appearance.length; i++)
-                        {
-                            that._identifierToAppId[that._idMap.appearance[i].name] = i;
-                        }
-
+                        that.applyIDMap(JSON.parse(this.responseText));
                         that.loadInline();
                     };
 
@@ -794,6 +806,78 @@ x3dom.registerNodeType(
                 };
             },
 
+            applyInline: function(inlScene)
+            {
+                var that = this;
+                var newScene = null;
+
+                if(!that._inlineNamespace)
+                {
+                    that._inlineNamespace = that._nameSpace;
+                }
+
+                //Replace Material before setupTree()
+                that.replaceMaterials(inlScene);
+
+                newScene = that._inlineNamespace.setupTree(inlScene);
+
+                that._nameSpace.addSpace(that._inlineNamespace);
+
+                if(that._vf.nameSpaceName.length != 0)
+                {
+                    Array.forEach ( inlScene.childNodes, function (childDomNode)
+                    {
+                        if(childDomNode instanceof Element)
+                        {
+                            setNamespace(that._vf.nameSpaceName, childDomNode, that._vf.mapDEFToID);
+                            that._xmlNode.appendChild(childDomNode);
+                        }
+                    } );
+                }
+
+                // trick to free memory, assigning a property to global object, then deleting it
+                var global = x3dom.getGlobal();
+
+                if (that._childNodes.length > 0 && that._childNodes[0] && that._childNodes[0]._nameSpace) {
+                    that._nameSpace.removeSpace(that._childNodes[0]._nameSpace);
+                }
+
+                while (that._childNodes.length !== 0) {
+                    global['_remover'] = that.removeChild(that._childNodes[0]);
+                }
+
+                delete global['_remover'];
+
+                if (newScene)
+                {
+                    that.addChild(newScene);
+
+                    that.invalidateVolume();
+                    //that.invalidateCache();
+
+                    that._nameSpace.doc.needRender = true;
+
+                    // recalc changed scene bounding box twice
+                    var theScene = that._nameSpace.doc._scene;
+
+                    if (theScene) {
+                        theScene.invalidateVolume();
+                        //theScene.invalidateCache();
+
+                        window.setTimeout( function() {
+                            that.invalidateVolume();
+                            //that.invalidateCache();
+
+                            theScene.updateVolume();
+                            that._nameSpace.doc.needRender = true;
+                        }, 1000 );
+                    }
+
+                    that.appendAPI();
+                    that.fireEvents("load");
+                }
+            },
+
             loadInline: function ()
             {
                 var that = this;
@@ -846,7 +930,7 @@ x3dom.registerNodeType(
 
                     x3dom.debug.logInfo('Inline: downloading '+that._vf.url[0]+' done.');
 
-                    var inlScene = null, newScene = null, nameSpace = null, xml = null;
+                    var inlScene = null, xml = null;
 
                     if (navigator.appName != "Microsoft Internet Explorer")
                         xml = xhr.responseXML;
@@ -866,9 +950,9 @@ x3dom.registerNodeType(
                     if (inlScene)
                     {
                         var nsDefault = "ns" + that._nameSpace.childSpaces.length;
-                        
+
                         var nsName = (that._vf.nameSpaceName.length != 0) ?
-                                      that._vf.nameSpaceName.toString().replace(' ','') : nsDefault;
+                            that._vf.nameSpaceName.toString().replace(' ','') : nsDefault;
 
                         that._inlineNamespace = new x3dom.NodeNameSpace(nsName, that._nameSpace.doc);
 
@@ -883,24 +967,10 @@ x3dom.registerNodeType(
                             that._inlineNamespace.setBaseURL(that._nameSpace.baseURL + url);
                         }
 
-                        //Replace Material before setupTree()
-                        that.replaceMaterials(inlScene);
+                        that.applyInline(inlScene);
 
-                        newScene = that._inlineNamespace.setupTree(inlScene);
-
-                        that._nameSpace.addSpace(that._inlineNamespace);
-
-                        if(that._vf.nameSpaceName.length != 0)
-                        {
-                            Array.forEach ( inlScene.childNodes, function (childDomNode)
-                            {
-                                if(childDomNode instanceof Element)
-                                {
-                                    setNamespace(that._vf.nameSpaceName, childDomNode, that._vf.mapDEFToID);
-                                    that._xmlNode.appendChild(childDomNode);
-                                }
-                            } );
-                        }
+                        that._nameSpace.doc.downloadCount -= 1;
+                        x3dom.debug.logInfo('Inline: added ' + that._vf.url[0] + ' to scene.');
                     }
                     else {
                         if (xml && xml.localName) {
@@ -910,52 +980,6 @@ x3dom.registerNodeType(
                         }
                     }
 
-                    // trick to free memory, assigning a property to global object, then deleting it
-                    var global = x3dom.getGlobal();
-
-                    if (that._childNodes.length > 0 && that._childNodes[0] && that._childNodes[0]._nameSpace) {
-                        that._nameSpace.removeSpace(that._childNodes[0]._nameSpace);
-                    }
-
-                    while (that._childNodes.length !== 0) {
-                        global['_remover'] = that.removeChild(that._childNodes[0]);
-                    }
-
-                    delete global['_remover'];
-
-                    if (newScene)
-                    {
-                        that.addChild(newScene);
-
-                        that.invalidateVolume();
-                        //that.invalidateCache();
-
-                        that._nameSpace.doc.downloadCount -= 1;
-                        that._nameSpace.doc.needRender = true;
-                        x3dom.debug.logInfo('Inline: added ' + that._vf.url[0] + ' to scene.');
-
-                        // recalc changed scene bounding box twice
-                        var theScene = that._nameSpace.doc._scene;
-
-                        if (theScene) {
-                            theScene.invalidateVolume();
-                            //theScene.invalidateCache();
-
-                            window.setTimeout( function() {
-                                that.invalidateVolume();
-                                //that.invalidateCache();
-
-                                theScene.updateVolume();
-                                that._nameSpace.doc.needRender = true;
-                            }, 1000 );
-                        }
-
-                        that.appendAPI();
-                        that.fireEvents("load");
-                    }
-
-                    newScene = null;
-                    //nameSpace = null;
                     inlScene = null;
                     xml = null;
 
