@@ -1010,10 +1010,11 @@ x3dom.Utils.generateProperties = function (viewarea, shape)
         property.IMAGEGEOMETRY    = (x3dom.isa(geometry, x3dom.nodeTypes.ImageGeometry))  ? 1 : 0;
         property.BINARYGEOMETRY   = (x3dom.isa(geometry, x3dom.nodeTypes.BinaryGeometry))  ? 1 : 0;
 		property.EXTERNALGEOMETRY = (x3dom.isa(geometry, x3dom.nodeTypes.ExternalGeometry))  ? 1 : 0;
+        property.GLTFGEOMTERY     = (x3dom.isa(geometry, x3dom.nodeTypes.glTFGeometry))  ? 1 : 0;
         property.IG_PRECISION     = (property.IMAGEGEOMETRY) ? geometry.numCoordinateTextures() : 0;
         property.IG_INDEXED       = (property.IMAGEGEOMETRY && geometry.getIndexTexture() != null) ? 1 : 0;
         property.POINTLINE2D      = !geometry.needLighting() ? 1 : 0;
-        property.VERTEXID         = ((property.BINARYGEOMETRY || property.EXTERNALGEOMETRY) && geometry._vf.idsPerVertex) ? 1 : 0;
+        property.VERTEXID         = ((property.BINARYGEOMETRY || property.EXTERNALGEOMETRY || property.GLTFGEOMTERY) && geometry._vf.idsPerVertex) ? 1 : 0;
         property.IS_PARTICLE      = (x3dom.isa(geometry, x3dom.nodeTypes.ParticleSet)) ? 1 : 0;
 
 

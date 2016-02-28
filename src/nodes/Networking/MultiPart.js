@@ -129,7 +129,7 @@ x3dom.registerNodeType(
             nodeChanged: function ()
             {
                 if (!this.initDone) {
-                    if(this._xmlNode._idMap & this._xmlNode._inlScene){
+                    if(this._xmlNode._idMap && this._xmlNode._inlScene){
                         // if these have been set programatically, then theres no need to download them
                         this.applyIDMap(this._xmlNode._idMap);
                         this.applyInline(this._xmlNode._inlScene);
@@ -570,6 +570,10 @@ x3dom.registerNodeType(
 
                     var shapes = inlScene.getElementsByTagName("Shape");
 
+                    if(inlScene.tagName == "Shape"){
+                        shapes = [ inlScene ];
+                    }
+
                     for (var s=0; s<shapes.length; s++)
                     {
                         shapeDEF = shapes[s].getAttribute("DEF") ||
@@ -733,7 +737,9 @@ x3dom.registerNodeType(
                             }
 
                             appearance.appendChild(css);
-                            geometries[g].appendChild(appearance);
+                            if(geometries[g]) {
+                                geometries[g].appendChild(appearance);
+                            }
                         }
                     }
                 }
@@ -818,6 +824,9 @@ x3dom.registerNodeType(
 
                 //Replace Material before setupTree()
                 that.replaceMaterials(inlScene);
+
+                //debug
+                var xmlString = (new XMLSerializer()).serializeToString(inlScene);
 
                 newScene = that._inlineNamespace.setupTree(inlScene);
 

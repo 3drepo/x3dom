@@ -53,6 +53,16 @@ x3dom.registerNodeType(
              */
             this.addField_SFString(ctx, 'mesh', null);
 
+            /**
+             * Flag that specifies whether vertex IDs are given as texture coordinates.
+             * @var {x3dom.fields.SFBool} idsPerVertex
+             * @memberof x3dom.nodeTypes.BinaryGeometry
+             * @initvalue false
+             * @field x3dom
+             * @instance
+             */
+            this.addField_SFBool(ctx, 'idsPerVertex', false);
+
             //initialization of rendering-related X3DOM structures
             this._mesh._invalidate = false;
             this._mesh._numCoords  = 0;
@@ -572,6 +582,14 @@ x3dom.registerNodeType(
                 for(var attributeId in multipart.attributes)
                 {
                     var attribute = multipart.attributes[attributeId];
+
+                    //should interpret texture coordinates as vertex ids
+                    if(that._vf.idsPerVertex){
+                        if(attributeId == "TEXCOORD_0"){
+                            attributeId = "ID";
+                        }
+                    }
+
                     var webglattribute = gltfAttributeMap[attributeId]
 
                     shape._webgl.buffers[webglattribute.IDX + bufferOffset]     = attribute.gpublock.glBuffer;

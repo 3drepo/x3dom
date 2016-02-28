@@ -139,7 +139,7 @@ x3dom.registerNodeType(
                 var sceneDom = that._createSceneDOM(scene);
 
                 //debug
-                 var xmlString = (new XMLSerializer()).serializeToString(sceneDom);
+                // var xmlString = (new XMLSerializer()).serializeToString(sceneDom);
 
                 // create the scene graph and add it to the current graph
                 var newScene = that._nameSpace.setupTree(sceneDom.documentElement);
@@ -215,19 +215,88 @@ x3dom.registerNodeType(
                 var geometryNode = sceneDoc.createElement("glTFGeometry");
                 geometryNode.setAttribute("url", that._uri);
                 geometryNode.setAttribute("mesh", meshname);
+                geometryNode.setAttribute("DEF", meshname);
                 //because the dom is being passed directly (not being encoded and parsed) we can pass objects
                 geometryNode.gltfHeader = header;
                 geometryNode.gltfHeaderBaseURI = that._path;
 
                 shapeNode.appendChild(geometryNode);
 
-                // create and apply the appearance node from the mesh material
-                //todo: set the material
+                if(header.meshes[meshname].primitives.length > 1)
+                {
+                    //this is a multipart mesh, so make the shape node an inline scene of a multipart element
+                    geometryNode.setAttribute("idsPerVertex","true");
+                    return that._createMultipartShapeNode(sceneDoc, shapeNode, meshname);
+                }
+                else
+                {
+                    // create and apply the appearance node from the mesh material
+                    //todo: set the material
 
-                var materialName = header.meshes[meshname].primitives[0].material;
-                shapeNode.appendChild(that._createAppearanceNode(sceneDoc, materialName));
+                    var materialName = header.meshes[meshname].primitives[0].material;
+                    shapeNode.appendChild(that._createAppearanceNode(sceneDoc, materialName));
+                }
 
                 return shapeNode;
+            },
+
+            _createMultipartShapeNode: function(sceneDoc, shapeNode, meshName)
+            {
+                var header = this._gltf._header;
+                var mesh = header.meshes[meshName];
+
+                var multipartNode = sceneDoc.createElement("Multipart");
+                multipartNode.setAttribute("url","");
+                multipartNode.setAttribute("urlIDMap","");
+
+                var idmap = {
+                    "numberOfIDs" : mesh.primitives.length,
+                    "maxGeoCount" : 1
+                };
+
+                var mapping = [];
+                for(var i = 0; i < mesh.primitives.length; i++)
+                {
+                    var primitive = mesh.primitives[i];
+
+                    var submesh = {
+                        "appearance" : primitive.material,
+                        "min" : "0 0 0",
+                        "max" : "1 1 1",
+                        "usage" : [ meshName ]
+                    }
+
+                    if(primitive.extras)
+                    {
+                        if(primitive.extras.refID){
+                            submesh.name = primitive.extras.refID;
+                        }
+                    }
+
+                    mapping.push(submesh);
+                }
+
+                var appearance = [];
+                for(var materialname in header.materials)
+                {
+                    appearance.push(
+                        {
+                            "name" : materialname,
+                            "material" : header.materials[materialname].extras.x3dmaterial
+                        }
+                    );
+                }
+
+                idmap.mapping = mapping;
+                idmap.appearance = appearance;
+
+                multipartNode._idMap = idmap;
+                multipartNode._inlScene = shapeNode;
+
+                //need an appearance node to which the common surface shader is added
+                shapeNode.appendChild(sceneDoc.createElement("Appearance"));
+
+                return multipartNode;
             },
 
             _createAppearanceNode: function(sceneDoc, materialName){
