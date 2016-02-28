@@ -519,6 +519,24 @@ x3dom.registerNodeType(
                     {
                         var segment = block._segments[i];
                         var data = that._getBufferViewSubData(segment.bufferView, segment.startBytes, segment.lengthBytes);
+
+                        if(that._vf.idsPerVertex){
+                            // ids per stored in the texture coordinates array in the x component. if this is a texcoord segment, reformat the array before writing it
+                            if(that._multipart.attributes["TEXCOORD_0"].gpublock._segments.indexOf(segment) >= 0){
+                                //this is a tex coord segment
+                                //todo: check this is a float array
+                                var source = new Float32Array(data.buffer);
+                                var dest = new Float32Array(source.length / 2);
+                                for (i = 0, j= 0; i < source.length; i+=2, j++)
+                                {
+                                    dest[j] = source[i+1] * 65536 + source[i];
+                                }
+
+                                data = dest.buffer;
+                            }
+
+                        }
+
                         block.write(data, segment.currentOffset);
                     }
                 }
@@ -603,7 +621,6 @@ x3dom.registerNodeType(
 
                 // set the flags
 
-                shape._cf.geometry.node._vf.idsPerVertex = true;
                 shape._dirty.shader = true;
                 shape._nameSpace.doc.needRender = true;
 
