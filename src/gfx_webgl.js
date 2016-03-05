@@ -2572,6 +2572,15 @@ x3dom.gfx_webgl = (function () {
                     gl.enableVertexAttribArray(sp.particleSize);
                 }
             }
+            if (sp.id !== undefined && s_gl.buffers[q6 + 5]) {
+                //not a hack for IDs
+                if (s_geo._vf["isMultipart"] == true)
+                {
+                    gl.vertexAttribPointer(sp.id,
+                        1, gl.FLOAT, false, 4, shape._idStrideOffset[1]);
+                    gl.enableVertexAttribArray(sp.id);
+                }
+            }
             if (s_gl.popGeometry != 0 && s_gl.buffers[q6 + 5]) {
                 //special case: mimic gl_VertexID
                 gl.bindBuffer(gl.ARRAY_BUFFER, s_gl.buffers[q6 + 5]);

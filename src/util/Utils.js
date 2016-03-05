@@ -1014,7 +1014,7 @@ x3dom.Utils.generateProperties = function (viewarea, shape)
         property.IG_PRECISION     = (property.IMAGEGEOMETRY) ? geometry.numCoordinateTextures() : 0;
         property.IG_INDEXED       = (property.IMAGEGEOMETRY && geometry.getIndexTexture() != null) ? 1 : 0;
         property.POINTLINE2D      = !geometry.needLighting() ? 1 : 0;
-        property.VERTEXID         = ((property.BINARYGEOMETRY || property.EXTERNALGEOMETRY || property.GLTFGEOMTERY) && geometry._vf.idsPerVertex) ? 1 : 0;
+        property.VERTEXID         = (((property.BINARYGEOMETRY || property.EXTERNALGEOMETRY) && geometry._vf.idsPerVertex) || (property.GLTFGEOMTERY && geometry._vf.isMultipart)) ? 1 : 0;
         property.IS_PARTICLE      = (x3dom.isa(geometry, x3dom.nodeTypes.ParticleSet)) ? 1 : 0;
 
 

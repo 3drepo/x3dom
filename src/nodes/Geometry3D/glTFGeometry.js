@@ -54,14 +54,14 @@ x3dom.registerNodeType(
             this.addField_SFString(ctx, 'mesh', null);
 
             /**
-             * Flag that specifies whether vertex IDs are given as texture coordinates.
-             * @var {x3dom.fields.SFBool} idsPerVertex
-             * @memberof x3dom.nodeTypes.BinaryGeometry
+             * Flag that specifies whether each primitive should be considered a submesh of a single multipart mesh
+             * @var {x3dom.fields.SFBool} isMultipart
+             * @memberof x3dom.nodeTypes.glTFGeometry
              * @initvalue false
              * @field x3dom
              * @instance
              */
-            this.addField_SFBool(ctx, 'idsPerVertex', false);
+            this.addField_SFBool(ctx, 'isMultipart', false);
 
             //initialization of rendering-related X3DOM structures
             this._mesh._invalidate = false;
@@ -256,7 +256,7 @@ x3dom.registerNodeType(
                     shaderParameterCtor(NORMAL_BUFFER_IDX, "NORMAL", "normal", "Norm"),
                     shaderParameterCtor(TEXCOORD_BUFFER_IDX, "TEXCOORD_0", "texCoord", "Tex"),
                     shaderParameterCtor(COLOR_BUFFER_IDX, "COLOR", "color", "col"),
-                    shaderParameterCtor(ID_BUFFER_IDX, "ID", "id", "Id")
+                    shaderParameterCtor(ID_BUFFER_IDX, "IDMAP", "id", "Id")
                 ];
 
                 shaderAttributes.forEach(function(attribute)
@@ -571,7 +571,7 @@ x3dom.registerNodeType(
                     NORMAL: shaderParameterCtor(NORMAL_BUFFER_IDX, "NORMAL", "normal", "Norm"),
                     TEXCOORD_0: shaderParameterCtor(TEXCOORD_BUFFER_IDX, "TEXCOORD_0", "texCoord", "Tex"),
                     COLOR: shaderParameterCtor(COLOR_BUFFER_IDX, "COLOR", "color", "col"),
-                    ID: shaderParameterCtor(ID_BUFFER_IDX, "ID", "id", "Id")
+                    IDMAP: shaderParameterCtor(ID_BUFFER_IDX, "IDMAP", "id", "Id")
                 };
 
                 var primitiveCount = multipart.indices.count / 3;
@@ -600,14 +600,6 @@ x3dom.registerNodeType(
                 for(var attributeId in multipart.attributes)
                 {
                     var attribute = multipart.attributes[attributeId];
-
-                    //should interpret texture coordinates as vertex ids
-                    if(that._vf.idsPerVertex){
-                        if(attributeId == "TEXCOORD_0"){
-                            attributeId = "ID";
-                        }
-                    }
-
                     var webglattribute = gltfAttributeMap[attributeId]
 
                     shape._webgl.buffers[webglattribute.IDX + bufferOffset]     = attribute.gpublock.glBuffer;

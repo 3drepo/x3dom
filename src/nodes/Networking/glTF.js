@@ -139,7 +139,7 @@ x3dom.registerNodeType(
                 var sceneDom = that._createSceneDOM(scene);
 
                 //debug
-                // var xmlString = (new XMLSerializer()).serializeToString(sceneDom);
+                 var xmlString = (new XMLSerializer()).serializeToString(sceneDom);
 
                 // create the scene graph and add it to the current graph
                 var newScene = that._nameSpace.setupTree(sceneDom.documentElement);
@@ -225,7 +225,9 @@ x3dom.registerNodeType(
                 if(header.meshes[meshname].primitives.length > 1)
                 {
                     //this is a multipart mesh, so make the shape node an inline scene of a multipart element
-                    geometryNode.setAttribute("idsPerVertex","true");
+                    //this has to be set in the xml (rather than the x3d graph) so that the VERTEX_ID flag will
+                    //be set by the generateProperties method of Utils.js
+                    geometryNode.setAttribute("isMultipart","true");
                     return that._createMultipartShapeNode(sceneDoc, shapeNode, meshname);
                 }
                 else

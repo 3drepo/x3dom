@@ -12,16 +12,7 @@
         }
     },
     "bufferViews": {
-        "bufv_bb44e353-675c-4948-a2c6-d312b120de6a_n": {
-            "buffer": "bb44e353-675c-4948-a2c6-d312b120de6a",
-            "byteLength": 4224,
-            "byteOffset": 0,
-            "target": 34962,
-            "extras": {
-                "refID": "bb44e353-675c-4948-a2c6-d312b120de6a_0"
-            }
-        },
-        "bufv_bb44e353-675c-4948-a2c6-d312b120de6a_p": {
+        "bufv_bb44e353-675c-4948-a2c6-d312b120de6a_0_n": {
             "buffer": "bb44e353-675c-4948-a2c6-d312b120de6a",
             "byteLength": 4224,
             "byteOffset": 4224,
@@ -30,7 +21,16 @@
                 "refID": "bb44e353-675c-4948-a2c6-d312b120de6a_0"
             }
         },
-        "bufv_bb44e353-675c-4948-a2c6-d312b120de6a_f": {
+        "bufv_bb44e353-675c-4948-a2c6-d312b120de6a_0_p": {
+            "buffer": "bb44e353-675c-4948-a2c6-d312b120de6a",
+            "byteLength": 4224,
+            "byteOffset": 0,
+            "target": 34962,
+            "extras": {
+                "refID": "bb44e353-675c-4948-a2c6-d312b120de6a_0"
+            }
+        },
+        "bufv_bb44e353-675c-4948-a2c6-d312b120de6a_0_f": {
             "buffer": "bb44e353-675c-4948-a2c6-d312b120de6a",
             "byteLength": 1032,
             "byteOffset": 8448,
@@ -39,10 +39,19 @@
                 "refID": "bb44e353-675c-4948-a2c6-d312b120de6a_0"
             }
         },
-        "bufv_bb44e353-675c-4948-a2c6-d312b120de6a_uv_0": {
+        "bufv_bb44e353-675c-4948-a2c6-d312b120de6a_0_id": {
+            "buffer": "bb44e353-675c-4948-a2c6-d312b120de6a",
+            "byteLength": 1408,
+            "byteOffset": 9480,
+            "target": 34962,
+            "extras": {
+                "refID": "bb44e353-675c-4948-a2c6-d312b120de6a_0"
+            }
+        },
+        "bufv_bb44e353-675c-4948-a2c6-d312b120de6a_0_uv_0": {
             "buffer": "bb44e353-675c-4948-a2c6-d312b120de6a",
             "byteLength": 2816,
-            "byteOffset": 9480,
+            "byteOffset": 10888,
             "target": 34962,
             "extras": {
                 "refID": "bb44e353-675c-4948-a2c6-d312b120de6a_0"
@@ -51,9 +60,9 @@
     },
     "accessors": {
         "acc_bb44e353-675c-4948-a2c6-d312b120de6a_0_m0_f": {
-            "bufferView": "bufv_bb44e353-675c-4948-a2c6-d312b120de6a_f",
+            "bufferView": "bufv_bb44e353-675c-4948-a2c6-d312b120de6a_0_f",
             "byteOffset": 0,
-            "byteStride": 0,
+            "byteStride": 4,
             "componentType": 5123,
             "count": 384,
             "min": [
@@ -64,11 +73,15 @@
             ],
             "type": "SCALAR",
             "extras": {
-                "refID": "fce5665e-f351-4993-8771-dc8d76ffd51b"
+                "refID": "fce5665e-f351-4993-8771-dc8d76ffd51b",
+                "lodRef": [
+                    300,
+                    384
+                ]
             }
         },
         "acc_bb44e353-675c-4948-a2c6-d312b120de6a_0_m0_n": {
-            "bufferView": "bufv_bb44e353-675c-4948-a2c6-d312b120de6a_n",
+            "bufferView": "bufv_bb44e353-675c-4948-a2c6-d312b120de6a_0_n",
             "byteOffset": 0,
             "byteStride": 12,
             "componentType": 5126,
@@ -89,7 +102,7 @@
             }
         },
         "acc_bb44e353-675c-4948-a2c6-d312b120de6a_0_m0_p": {
-            "bufferView": "bufv_bb44e353-675c-4948-a2c6-d312b120de6a_p",
+            "bufferView": "bufv_bb44e353-675c-4948-a2c6-d312b120de6a_0_p",
             "byteOffset": 0,
             "byteStride": 12,
             "componentType": 5126,
@@ -109,8 +122,25 @@
                 "refID": "fce5665e-f351-4993-8771-dc8d76ffd51b"
             }
         },
+        "acc_bb44e353-675c-4948-a2c6-d312b120de6a_0_m0_id": {
+            "bufferView": "bufv_bb44e353-675c-4948-a2c6-d312b120de6a_0_id",
+            "byteOffset": 0,
+            "byteStride": 4,
+            "componentType": 5126,
+            "count": 256,
+            "min": [
+                0
+            ],
+            "max": [
+                0
+            ],
+            "type": "SCALAR",
+            "extras": {
+                "refID": "fce5665e-f351-4993-8771-dc8d76ffd51b"
+            }
+        },
         "acc_bb44e353-675c-4948-a2c6-d312b120de6a_0_m0_uv_0": {
-            "bufferView": "bufv_bb44e353-675c-4948-a2c6-d312b120de6a_uv_0",
+            "bufferView": "bufv_bb44e353-675c-4948-a2c6-d312b120de6a_0_p",
             "byteOffset": 0,
             "byteStride": 8,
             "componentType": 5126,
@@ -129,24 +159,28 @@
             }
         },
         "acc_bb44e353-675c-4948-a2c6-d312b120de6a_0_m1_f": {
-            "bufferView": "bufv_bb44e353-675c-4948-a2c6-d312b120de6a_f",
+            "bufferView": "bufv_bb44e353-675c-4948-a2c6-d312b120de6a_0_f",
             "byteOffset": 768,
             "byteStride": 0,
             "componentType": 5123,
             "count": 132,
             "min": [
-                256
+                0
             ],
             "max": [
-                351
+                95
             ],
             "type": "SCALAR",
             "extras": {
-                "refID": "2390cd47-6a33-4b13-9230-9003b34b1653"
+                "refID": "2390cd47-6a33-4b13-9230-9003b34b1653",
+                "lodRef": [
+                    84,
+                    132
+                ]
             }
         },
         "acc_bb44e353-675c-4948-a2c6-d312b120de6a_0_m1_n": {
-            "bufferView": "bufv_bb44e353-675c-4948-a2c6-d312b120de6a_n",
+            "bufferView": "bufv_bb44e353-675c-4948-a2c6-d312b120de6a_0_n",
             "byteOffset": 3072,
             "byteStride": 12,
             "componentType": 5126,
@@ -167,7 +201,7 @@
             }
         },
         "acc_bb44e353-675c-4948-a2c6-d312b120de6a_0_m1_p": {
-            "bufferView": "bufv_bb44e353-675c-4948-a2c6-d312b120de6a_p",
+            "bufferView": "bufv_bb44e353-675c-4948-a2c6-d312b120de6a_0_p",
             "byteOffset": 3072,
             "byteStride": 12,
             "componentType": 5126,
@@ -187,8 +221,25 @@
                 "refID": "2390cd47-6a33-4b13-9230-9003b34b1653"
             }
         },
+        "acc_bb44e353-675c-4948-a2c6-d312b120de6a_0_m1_id": {
+            "bufferView": "bufv_bb44e353-675c-4948-a2c6-d312b120de6a_0_id",
+            "byteOffset": 1024,
+            "byteStride": 4,
+            "componentType": 5126,
+            "count": 96,
+            "min": [
+                1
+            ],
+            "max": [
+                1
+            ],
+            "type": "SCALAR",
+            "extras": {
+                "refID": "2390cd47-6a33-4b13-9230-9003b34b1653"
+            }
+        },
         "acc_bb44e353-675c-4948-a2c6-d312b120de6a_0_m1_uv_0": {
-            "bufferView": "bufv_bb44e353-675c-4948-a2c6-d312b120de6a_uv_0",
+            "bufferView": "bufv_bb44e353-675c-4948-a2c6-d312b120de6a_0_p",
             "byteOffset": 2048,
             "byteStride": 8,
             "componentType": 5126,
@@ -217,6 +268,7 @@
                     "attributes": {
                         "NORMAL": "acc_bb44e353-675c-4948-a2c6-d312b120de6a_0_m0_n",
                         "POSITION": "acc_bb44e353-675c-4948-a2c6-d312b120de6a_0_m0_p",
+                        "IDMAP": "acc_bb44e353-675c-4948-a2c6-d312b120de6a_0_m0_id",
                         "TEXCOORD_0": "acc_bb44e353-675c-4948-a2c6-d312b120de6a_0_m0_uv_0"
                     },
                     "extras": {
@@ -230,6 +282,7 @@
                     "attributes": {
                         "NORMAL": "acc_bb44e353-675c-4948-a2c6-d312b120de6a_0_m1_n",
                         "POSITION": "acc_bb44e353-675c-4948-a2c6-d312b120de6a_0_m1_p",
+                        "IDMAP": "acc_bb44e353-675c-4948-a2c6-d312b120de6a_0_m1_id",
                         "TEXCOORD_0": "acc_bb44e353-675c-4948-a2c6-d312b120de6a_0_m1_uv_0"
                     },
                     "extras": {
@@ -280,18 +333,29 @@
                     "semantic": "POSITION",
                     "type": 35665
                 },
+                "texcoord0": {
+                    "semantic": "TEXCOORD_0",
+                    "type": 35664
+                },
                 "projectionMatrix": {
                     "semantic": "PROJECTION",
                     "type": 35676
                 },
                 "shininess": {
-                    "type": 5126
+                    "type": 5126,
+                    "value": 50
                 },
                 "diffuse": {
                     "type": 35666
                 },
                 "specular": {
-                    "type": 35666
+                    "type": 35666,
+                    "value": [
+                        0,
+                        0,
+                        0,
+                        0
+                    ]
                 }
             },
             "program": "default_program",
@@ -311,13 +375,12 @@
             },
             "attributes": {
                 "normal": "normal",
-                "position": "position"
+                "position": "position",
+                "a_texcoord0": "texcoord0"
             },
             "extras": {
-                "varyings":{
-                    "v_normal": {
-                        "type": 35665
-                    }
+                "varyings": {
+                    "v_normal": 35676
                 }
             }
         }
@@ -325,8 +388,8 @@
     "programs": {
         "default_program": {
             "attributes": [
-                "a_normal",
-                "a_position"
+                "normal",
+                "position"
             ],
             "fragmentShader": "default_fshader",
             "vertexShader": "default_vshader"
@@ -337,27 +400,27 @@
             "type": 35632,
             "uri": "fragShader.glsl",
             "extras": {
-                "x3domShaderFunction":{
-                    "uri":"x3domFragShader.glsl",
-                    "name":"x3dmain",
-                    "parameters":[
+                "x3domShaderFunction": {
+                    "uri": "x3domFragShader.glsl",
+                    "name": "x3dmain",
+                    "parameters": [
                         "v_normal",
                         "u_diffuse",
                         "u_specular",
                         "u_shininess"
                     ],
-                    "returns":"gl_FragColor"
+                    "returns": "gl_FragColor"
                 }
             }
         },
         "default_vshader": {
             "type": 35633,
             "uri": "vertShader.glsl",
-            "extras":{
+            "extras": {
                 "x3domShaderFunction": {
-                    "uri":"x3domVertShader.glsl",
-                    "name":"x3dmain",
-                    "parameters":[
+                    "uri": "x3domVertShader.glsl",
+                    "name": "x3dmain",
+                    "parameters": [
                         "position",
                         "normal",
                         "v_normal",
@@ -365,7 +428,7 @@
                         "modelViewMatrix",
                         "projectionMatrix"
                     ],
-                    "returns":"gl_Position"
+                    "returns": "gl_Position"
                 }
             }
         }
@@ -373,6 +436,14 @@
     "materials": {
         "89e4d028-9353-4e0e-8d6e-0f9dd7cf0160": {
             "technique": "default_technique",
+            "extras": {
+                "x3dmaterial": {
+                    "ambient": "0.100000001,0.100000001,0.100000001",
+                    "diffuseColor": "0.301604003,0.133541977,0.800000012",
+                    "emission": "0,0,0",
+                    "specular": "0.200000003,0.200000003,0.200000003"
+                }
+            },
             "values": {
                 "ambient": [
                     0.100000001,
@@ -400,15 +471,18 @@
                 ],
                 "shininess": 256
             },
-            "extras":{
-                "x3dmaterial": {
-                    "diffuseColor":"0.3 0.5 0.8"
-                }
-            },
             "name": "outer"
         },
         "38f99b73-32f7-4c29-98b8-d5800012ad3e": {
             "technique": "default_technique",
+            "extras": {
+                "x3dmaterial": {
+                    "ambient": "0.100000001,0.100000001,0.100000001",
+                    "diffuseColor": "0.800000012,0.915942013,0.79529202",
+                    "emission": "0,0,0",
+                    "specular": "0.200000003,0.200000003,0.200000003"
+                }
+            },
             "values": {
                 "ambient": [
                     0.100000001,
@@ -436,11 +510,6 @@
                 ],
                 "shininess": 256
             },
-            "extras":{
-                "x3dmaterial": {
-                    "diffuseColor":"0.8 0.4 0.7"
-                }
-            },
             "name": "inner"
         }
     },
@@ -454,7 +523,7 @@
     },
     "buffers": {
         "bb44e353-675c-4948-a2c6-d312b120de6a": {
-            "byteLength": 12296,
+            "byteLength": 13704,
             "type": "arraybuffer",
             "uri": "bb44e353-675c-4948-a2c6-d312b120de6a.bin"
         }
