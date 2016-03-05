@@ -139,7 +139,7 @@ x3dom.registerNodeType(
                 var sceneDom = that._createSceneDOM(scene);
 
                 //debug
-                 var xmlString = (new XMLSerializer()).serializeToString(sceneDom);
+                // var xmlString = (new XMLSerializer()).serializeToString(sceneDom);
 
                 // create the scene graph and add it to the current graph
                 var newScene = that._nameSpace.setupTree(sceneDom.documentElement);

@@ -826,7 +826,7 @@ x3dom.registerNodeType(
                 that.replaceMaterials(inlScene);
 
                 //debug
-                var xmlString = (new XMLSerializer()).serializeToString(inlScene);
+                //var xmlString = (new XMLSerializer()).serializeToString(inlScene);
 
                 newScene = that._inlineNamespace.setupTree(inlScene);
 

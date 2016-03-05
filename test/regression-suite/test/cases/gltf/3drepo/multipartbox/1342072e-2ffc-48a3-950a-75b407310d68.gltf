@@ -62,7 +62,7 @@
         "acc_bb44e353-675c-4948-a2c6-d312b120de6a_0_m0_f": {
             "bufferView": "bufv_bb44e353-675c-4948-a2c6-d312b120de6a_0_f",
             "byteOffset": 0,
-            "byteStride": 4,
+            "byteStride": 0,
             "componentType": 5123,
             "count": 384,
             "min": [
@@ -140,7 +140,7 @@
             }
         },
         "acc_bb44e353-675c-4948-a2c6-d312b120de6a_0_m0_uv_0": {
-            "bufferView": "bufv_bb44e353-675c-4948-a2c6-d312b120de6a_0_p",
+            "bufferView": "bufv_bb44e353-675c-4948-a2c6-d312b120de6a_0_uv_0",
             "byteOffset": 0,
             "byteStride": 8,
             "componentType": 5126,
@@ -239,7 +239,7 @@
             }
         },
         "acc_bb44e353-675c-4948-a2c6-d312b120de6a_0_m1_uv_0": {
-            "bufferView": "bufv_bb44e353-675c-4948-a2c6-d312b120de6a_0_p",
+            "bufferView": "bufv_bb44e353-675c-4948-a2c6-d312b120de6a_0_uv_0",
             "byteOffset": 2048,
             "byteStride": 8,
             "componentType": 5126,
@@ -380,7 +380,9 @@
             },
             "extras": {
                 "varyings": {
-                    "v_normal": 35676
+                    "v_normal": {
+                        "type": 35665
+                    }
                 }
             }
         }

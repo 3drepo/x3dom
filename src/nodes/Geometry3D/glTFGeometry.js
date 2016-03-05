@@ -160,7 +160,9 @@ x3dom.registerNodeType(
              */
             _updateRenderData: function(shape, shaderProgram, gl, requestedMesh)
             {
+                //todo: replace with isMultipart flag
                 if(requestedMesh.primitives.length > 1){
+                    this._createBufferViews(gl);
                     this._updateRenderDataForMultipart(shape, gl, requestedMesh);
                 }else {
                     this._updateRenderDataForPrimitive(shape, gl, requestedMesh.primitives[0]);
@@ -278,10 +280,6 @@ x3dom.registerNodeType(
                 if(primitive.attributes[shaderAttributes[0].Name]){
                     var positionView = that._getAccessorView(primitive.attributes[shaderAttributes[0].Name], gl);
                     this._mesh._numCoords += positionView.elementCount;
-                }
-
-                if(primitive.attributes[shaderAttributes[4].Name]){
-                    shape._cf.geometry.node._vf.idsPerVertex = true;
                 }
 
                 // 6. notify renderer
@@ -480,7 +478,7 @@ x3dom.registerNodeType(
                     multipart.primitives[i]._visible = true;
                 }
 
-            //    multipart.primitives[12]._visible = false;
+            //    multipart.primitives[1]._visible = false;
             //    multipart.primitives[150]._visible = false;
             //    multipart.primitives[80]._visible = false;
             //    multipart.primitives[59]._visible = false;
@@ -519,23 +517,6 @@ x3dom.registerNodeType(
                     {
                         var segment = block._segments[i];
                         var data = that._getBufferViewSubData(segment.bufferView, segment.startBytes, segment.lengthBytes);
-
-                        if(that._vf.idsPerVertex){
-                            // ids per stored in the texture coordinates array in the x component. if this is a texcoord segment, reformat the array before writing it
-                            if(that._multipart.attributes["TEXCOORD_0"].gpublock._segments.indexOf(segment) >= 0){
-                                //this is a tex coord segment
-                                //todo: check this is a float array
-                                var source = new Float32Array(data.buffer);
-                                var dest = new Float32Array(source.length / 2);
-                                for (i = 0, j= 0; i < source.length; i+=2, j++)
-                                {
-                                    dest[j] = source[i+1] * 65536 + source[i];
-                                }
-
-                                data = dest.buffer;
-                            }
-
-                        }
 
                         block.write(data, segment.currentOffset);
                     }
@@ -606,9 +587,7 @@ x3dom.registerNodeType(
                     shape["_" + webglattribute.x3domTypeID + "StrideOffset"][0] = attribute.byteStride;
                     shape["_" + webglattribute.x3domTypeID + "StrideOffset"][1] = attribute.byteOffset + attribute.gpublock.glBufferOffset;
                     shape._webgl[webglattribute.x3domTypeID + "Type"]           = attribute.componentType;
-
-                    //      that._mesh["_num" + webglattribute.x3domShortTypeID + "Components"] = attribute.buffer.elementCount;
-
+            //      that._mesh["_num" + webglattribute.x3domShortTypeID + "Components"] = attribute.buffer.elementCount;
                 }
 
                 // set the flags
