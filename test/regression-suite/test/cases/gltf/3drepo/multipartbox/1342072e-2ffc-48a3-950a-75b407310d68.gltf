@@ -295,6 +295,7 @@
     "nodes": {
         "f1131872-ecfc-41b0-bcad-45eadf72c7cd": {
             "name": "mesh_0",
+            "extras" : { "multipart" : "true" },
             "meshes": [
                 "bb44e353-675c-4948-a2c6-d312b120de6a_0"
             ]

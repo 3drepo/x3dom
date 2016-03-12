@@ -14215,6 +14215,7 @@
     "nodes": {
         "6586d54f-a6dd-4c9a-bcd2-a819690e9b65": {
             "name": "<dummy_root>",
+            "extras" : { "multipart" : "true" },
             "meshes": [
                 "42ba22ce-94ea-4427-96bc-cdcc63105ac4_0"
             ]

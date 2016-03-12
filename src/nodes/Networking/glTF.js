@@ -162,15 +162,17 @@ x3dom.registerNodeType(
                 var sceneDoc = document.implementation.createDocument(null, "Transform");
                 var sceneNode = sceneDoc.documentElement;
 
+                var context = {};
+
                 // walk the scene graph (_createChild is recursive) to create x3d nodes
                 scene.nodes.forEach(function(node) {
-                    sceneNode.appendChild(that._createChild(sceneDoc, header.nodes[node]));
+                    sceneNode.appendChild(that._createChild(sceneDoc, header.nodes[node], context));
                 });
 
                 return sceneDoc;
             },
 
-            _createChild: function(sceneDoc, gltfNode){
+            _createChild: function(sceneDoc, gltfNode, context){
 
                 var that    = this;
                 var header  = this._gltf._header;
@@ -182,18 +184,53 @@ x3dom.registerNodeType(
 
                 //todo: configure the transform attributes with the transformations from the grpah
 
+
+                // check if this is the start of a multipart subgraph. if so, put the subgrpah we just created inside a
+                // Multipart element, and build an idmap to send with it via the DOM
+
+                if(gltfNode.extras)
+                {
+                    if(gltfNode.extras.multipart)
+                    {
+                        context = {}; // new context for hereon in
+                        context.multipart = true;
+                        context.idmap = {
+                            "numberOfIDs" : 0,
+                            "maxGeoCount" : 0,
+                            "mapping"     : [],
+                            "appearance"  : []
+                        };
+                    }
+                }
+
                 // add any meshes of this node as as new glTFGeometry nodes
                 if(gltfNode.meshes) {
                     gltfNode.meshes.forEach(function(mesh) {
-                        newNode.appendChild(that._createShapeNode(sceneDoc, mesh));
+                        newNode.appendChild(that._createShapeNode(sceneDoc, mesh, context));
                     });
                 }
 
                 // finally process all the children
                 if(gltfNode.children) {
                     gltfNode.children.forEach(function(child) {
-                        newNode.appendChild(that._createChild(sceneDoc, header.nodes[child]));
+                        newNode.appendChild(that._createChild(sceneDoc, header.nodes[child], context));
                     });
+                }
+
+                // check if this is the start of a multipart subgraph. if so, put the subgrpah we just created inside a
+                // Multipart element
+                if(gltfNode.extras)
+                {
+                    if (gltfNode.extras.multipart)
+                    {
+                        var multipartNode = sceneDoc.createElement("Multipart");
+                        multipartNode.setAttribute("url","");
+                        multipartNode.setAttribute("urlIDMap","");
+                        multipartNode._idMap = context.idmap;
+                        multipartNode._inlScene = newNode;
+
+                        newNode = multipartNode;
+                    }
                 }
 
                 return newNode;
@@ -203,7 +240,7 @@ x3dom.registerNodeType(
              * Creates a new X3DShape node, with the geometry and appearance elements initialised to new glTFGeometry and
              * Appearance nodes.
              */
-            _createShapeNode: function(sceneDoc, meshname){
+            _createShapeNode: function(sceneDoc, meshname, context){
 
                 var that    = this;
                 var header  = this._gltf._header;
@@ -222,18 +259,18 @@ x3dom.registerNodeType(
 
                 shapeNode.appendChild(geometryNode);
 
-                var xmlString = (new XMLSerializer()).serializeToString(shapeNode);
-
-                if(header.meshes[meshname].primitives.length > 1)
+                if(context.multipart)
                 {
                     //this is a multipart mesh, so make the shape node an inline scene of a multipart element
                     //this has to be set in the xml (rather than the x3d graph) so that the VERTEX_ID flag will
                     //be set by the generateProperties method of Utils.js
                     geometryNode.setAttribute("isMultipart","true");
                     geometryNode.setAttribute("idsPerVertex","true");
-                    return that._createMultipartShapeNode(sceneDoc, shapeNode, meshname);
+                    that._addMeshToIdMap(meshname, context.idmap);
+                    //need an appearance node to which the common surface shader is added
+                    shapeNode.appendChild(sceneDoc.createElement("Appearance"));
                 }
-                else
+                else // there is nothing wrong with creating the material below, but why waste the time if we know we don't have to?
                 {
                     // create and apply the appearance node from the mesh material
                     //todo: set the material
@@ -245,23 +282,16 @@ x3dom.registerNodeType(
                 return shapeNode;
             },
 
-            _createMultipartShapeNode: function(sceneDoc, shapeNode, meshName)
+            _addMeshToIdMap: function(meshName, idmap)
             {
-                var header = this._gltf._header;
+                var that    = this;
+                var header  = this._gltf._header;
+
                 var mesh = header.meshes[meshName];
 
-                var multipartNode = sceneDoc.createElement("Multipart");
-                multipartNode.setAttribute("url",meshName);
-                multipartNode.setAttribute("urlIDMap",meshName);
+                idmap.maxGeoCount++;
+                idmap.numberOfIDs += mesh.primitives.length;
 
-                // each multipart
-
-                var idmap = {
-                    "numberOfIDs" : mesh.primitives.length,
-                    "maxGeoCount" : 1
-                };
-
-                var mapping = [];
                 for(var i = 0; i < mesh.primitives.length; i++)
                 {
                     var primitive = mesh.primitives[i];
@@ -280,30 +310,18 @@ x3dom.registerNodeType(
                         }
                     }
 
-                    mapping.push(submesh);
+                    idmap.mapping.push(submesh);
                 }
 
-                var appearance = [];
                 for(var materialname in header.materials)
                 {
-                    appearance.push(
+                    idmap.appearance.push(
                         {
                             "name" : materialname,
                             "material" : header.materials[materialname].extras.x3dmaterial
                         }
                     );
                 }
-
-                idmap.mapping = mapping;
-                idmap.appearance = appearance;
-
-                multipartNode._idMap = idmap;
-                multipartNode._inlScene = shapeNode;
-
-                //need an appearance node to which the common surface shader is added
-                shapeNode.appendChild(sceneDoc.createElement("Appearance"));
-
-                return multipartNode;
             },
 
             _createAppearanceNode: function(sceneDoc, materialName){

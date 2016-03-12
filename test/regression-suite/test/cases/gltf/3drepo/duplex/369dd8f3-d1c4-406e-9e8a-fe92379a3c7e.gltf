@@ -38908,6 +38908,7 @@
     "nodes": {
         "925776a0-0044-4366-95b7-b8d4eb88163b": {
             "name": "<dummy_root>",
+            "extras" : { "multipart" : "true" },
             "meshes": [
                 "b528c0f2-6f26-4f1d-bc2a-d62124532d87_0"
             ]
