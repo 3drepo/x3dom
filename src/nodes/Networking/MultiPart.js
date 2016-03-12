@@ -817,6 +817,24 @@ x3dom.registerNodeType(
                 var that = this;
                 var newScene = null;
 
+                var nsDefault = "ns" + that._nameSpace.childSpaces.length;
+
+                var nsName = (that._vf.nameSpaceName.length != 0) ?
+                    that._vf.nameSpaceName.toString().replace(' ','') : nsDefault;
+
+                that._inlineNamespace = new x3dom.NodeNameSpace(nsName, that._nameSpace.doc);
+
+                var url = that._vf.url.length ? that._vf.url[0] : "";
+
+                if ((url[0] === '/') || (url.indexOf(":") >= 0))
+                {
+                    that._inlineNamespace.setBaseURL(url);
+                }
+                else
+                {
+                    that._inlineNamespace.setBaseURL(that._nameSpace.baseURL + url);
+                }
+
                 if(!that._inlineNamespace)
                 {
                     that._inlineNamespace = that._nameSpace;
@@ -958,24 +976,6 @@ x3dom.registerNodeType(
 
                     if (inlScene)
                     {
-                        var nsDefault = "ns" + that._nameSpace.childSpaces.length;
-
-                        var nsName = (that._vf.nameSpaceName.length != 0) ?
-                            that._vf.nameSpaceName.toString().replace(' ','') : nsDefault;
-
-                        that._inlineNamespace = new x3dom.NodeNameSpace(nsName, that._nameSpace.doc);
-
-                        var url = that._vf.url.length ? that._vf.url[0] : "";
-
-                        if ((url[0] === '/') || (url.indexOf(":") >= 0))
-                        {
-                            that._inlineNamespace.setBaseURL(url);
-                        }
-                        else
-                        {
-                            that._inlineNamespace.setBaseURL(that._nameSpace.baseURL + url);
-                        }
-
                         that.applyInline(inlScene);
 
                         that._nameSpace.doc.downloadCount -= 1;

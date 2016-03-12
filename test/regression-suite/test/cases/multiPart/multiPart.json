@@ -19,7 +19,7 @@
 "name": "App_2",
 "material": { 
 "diffuseColor": "0.85 0 0",
-"transparency": "1"
+"transparency": "0"
 }},
 {
 "name": "App_3",

@@ -222,12 +222,15 @@ x3dom.registerNodeType(
 
                 shapeNode.appendChild(geometryNode);
 
+                var xmlString = (new XMLSerializer()).serializeToString(shapeNode);
+
                 if(header.meshes[meshname].primitives.length > 1)
                 {
                     //this is a multipart mesh, so make the shape node an inline scene of a multipart element
                     //this has to be set in the xml (rather than the x3d graph) so that the VERTEX_ID flag will
                     //be set by the generateProperties method of Utils.js
                     geometryNode.setAttribute("isMultipart","true");
+                    geometryNode.setAttribute("idsPerVertex","true");
                     return that._createMultipartShapeNode(sceneDoc, shapeNode, meshname);
                 }
                 else
@@ -248,8 +251,10 @@ x3dom.registerNodeType(
                 var mesh = header.meshes[meshName];
 
                 var multipartNode = sceneDoc.createElement("Multipart");
-                multipartNode.setAttribute("url","");
-                multipartNode.setAttribute("urlIDMap","");
+                multipartNode.setAttribute("url",meshName);
+                multipartNode.setAttribute("urlIDMap",meshName);
+
+                // each multipart
 
                 var idmap = {
                     "numberOfIDs" : mesh.primitives.length,
@@ -264,7 +269,7 @@ x3dom.registerNodeType(
                     var submesh = {
                         "appearance" : primitive.material,
                         "min" : "0 0 0",
-                        "max" : "1 1 1",
+                        "max" : "1000 1000 1000",
                         "usage" : [ meshName ]
                     }
 

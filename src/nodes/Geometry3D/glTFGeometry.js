@@ -63,6 +63,16 @@ x3dom.registerNodeType(
              */
             this.addField_SFBool(ctx, 'isMultipart', false);
 
+            /**
+             * Flag that specifies whether each primitive should be considered a submesh of a single multipart mesh
+             * @var {x3dom.fields.SFBool} isMultipart
+             * @memberof x3dom.nodeTypes.glTFGeometry
+             * @initvalue false
+             * @field x3dom
+             * @instance
+             */
+            this.addField_SFBool(ctx, 'idsPerVertex', false);
+
             //initialization of rendering-related X3DOM structures
             this._mesh._invalidate = false;
             this._mesh._numCoords  = 0;

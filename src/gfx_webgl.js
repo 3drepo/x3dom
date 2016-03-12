@@ -1467,7 +1467,7 @@ x3dom.gfx_webgl = (function () {
                     {
                         gl.vertexAttribPointer(sp.id,
                             1, gl.FLOAT, false,
-                            4, 0);
+                            4, shape._idStrideOffset[1]);
                         gl.enableVertexAttribArray(sp.id);
                     }
                     else
@@ -1866,7 +1866,7 @@ x3dom.gfx_webgl = (function () {
                     {
                         gl.vertexAttribPointer(sp.id,
                             1, gl.FLOAT, false,
-                            4, 0);
+                            4, shape._idStrideOffset[1]);
                         gl.enableVertexAttribArray(sp.id);
                     }
                     else
@@ -2562,7 +2562,7 @@ x3dom.gfx_webgl = (function () {
                 if ((s_gl.binaryGeometry != 0 || s_gl.externalGeometry != 0) && s_geo._vf["idsPerVertex"] == true)
                 {
                     gl.vertexAttribPointer(sp.id,
-                        1, gl.FLOAT, false, 4, 0);
+                        1, gl.FLOAT, false, 4, shape._idStrideOffset[1]);
                     gl.enableVertexAttribArray(sp.id);
                 }
                 else if (isParticleSet)
@@ -2570,15 +2570,6 @@ x3dom.gfx_webgl = (function () {
                     gl.vertexAttribPointer(sp.particleSize,
                         3, gl.FLOAT, false, 0, 0);
                     gl.enableVertexAttribArray(sp.particleSize);
-                }
-            }
-            if (sp.id !== undefined && s_gl.buffers[q6 + 5]) {
-                //not a hack for IDs
-                if (s_geo._vf["isMultipart"] == true)
-                {
-                    gl.vertexAttribPointer(sp.id,
-                        1, gl.FLOAT, false, 4, shape._idStrideOffset[1]);
-                    gl.enableVertexAttribArray(sp.id);
                 }
             }
             if (s_gl.popGeometry != 0 && s_gl.buffers[q6 + 5]) {
