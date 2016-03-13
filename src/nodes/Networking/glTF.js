@@ -296,10 +296,12 @@ x3dom.registerNodeType(
                 {
                     var primitive = mesh.primitives[i];
 
+                    var positionsAccessor = header.accessors[primitive.attributes["POSITION"]];
+
                     var submesh = {
                         "appearance" : primitive.material,
-                        "min" : "0 0 0",
-                        "max" : "1000 1000 1000",
+                        "min" : positionsAccessor.min.toString(),
+                        "max" : positionsAccessor.max.toString(),
                         "usage" : [ meshName ]
                     }
 
