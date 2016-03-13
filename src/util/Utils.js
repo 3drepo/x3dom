@@ -1131,6 +1131,8 @@ x3dom.Utils.wrapProgram = function (gl, program, shaderID)
 
 		loc = gl.getUniformLocation(program, obj.name);
 
+        shader[obj.name + "_type"] = obj.type;
+
 		switch (obj.type) {
 			case gl.SAMPLER_2D:
 				shader.__defineSetter__(obj.name,

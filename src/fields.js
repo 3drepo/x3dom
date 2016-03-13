@@ -696,6 +696,34 @@ x3dom.fields.SFMatrix4f.prototype.toGL = function () {
 };
 
 /**
+ * Returns a column major version of this matrix, converted to the specified type, packed into a single array.
+ * @returns {Number[]} resulting array of values
+ */
+x3dom.fields.SFMatrix4f.prototype.toGLType = function (gl, type) {
+    switch (type)
+    {
+        case gl.FLOAT_MAT2:
+            return [
+                this._00, this._10,
+                this._01, this._11
+            ];
+        case gl.FLOAT_MAT3:
+            return [
+                this._00, this._10, this._20,
+                this._01, this._11, this._21,
+                this._02, this._12, this._22
+            ];
+        default:
+            return [
+                this._00, this._10, this._20, this._30,
+                this._01, this._11, this._21, this._31,
+                this._02, this._12, this._22, this._32,
+                this._03, this._13, this._23, this._33
+            ];
+    }
+};
+
+/**
  * Returns the value of this matrix at a given position.
  * @param {Number} i - row index (starting with 0)
  * @param {Number} j - column index (starting with 0)

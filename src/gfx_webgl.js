@@ -2401,7 +2401,7 @@ x3dom.gfx_webgl = (function () {
         sp.modelViewMatrix = model_view.toGL();
         sp.viewMatrix = mat_view.toGL();
 
-        sp.normalMatrix = model_view_inv.transpose().toGL();
+        sp.normalMatrix = model_view_inv.transpose().toGLType(gl,sp.normalMatrix_type);
         sp.modelViewMatrixInverse = model_view_inv.toGL();
 
         sp.modelViewProjectionMatrix = mat_scene.mult(transform).toGL();
@@ -2416,7 +2416,7 @@ x3dom.gfx_webgl = (function () {
             sp.projectionMatrix = mat_proj.toGL();
 
             sp.worldMatrix = transform.toGL();
-            sp.worldInverseTranspose = transform.inverse().transpose().toGL();
+            sp.worldInverseTranspose = transform.inverse().transpose().toGLType(gl, sp.worldInverseTranspose_type);
 
         }
 
@@ -4207,7 +4207,7 @@ x3dom.gfx_webgl = (function () {
             var s_msh = s_geo._mesh;
 
             var model_view_inv = mat_view.mult(trafo).inverse();
-            sp.normalMatrix = model_view_inv.transpose().toGL();
+            sp.normalMatrix = model_view_inv.transpose().toGLType(gl,sp.normalMatrix_type);
             sp.modelViewProjectionMatrix = mat_scene.mult(trafo).toGL();
 
             //Set ImageGeometry switch (TODO; also impl. in Shader!)
