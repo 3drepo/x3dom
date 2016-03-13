@@ -148,8 +148,7 @@ x3dom.registerNodeType(
                 });
 
                 //TODO: check SOURCE child nodes
-                shape._webgl.internalDownloadCount  = 1;
-                shape._nameSpace.doc.downloadCount  = 1;
+                shape._nameSpace.doc.downloadCount += 1;
 
             },
 
@@ -177,6 +176,8 @@ x3dom.registerNodeType(
                 }else {
                     this._updateRenderDataForPrimitive(shape, gl, requestedMesh.primitives[0]);
                 }
+
+                shape._nameSpace.doc.downloadCount -= 1;
             },
 
             _updateRenderDataForPrimitive: function(shape, gl, requestedPrimitive){
