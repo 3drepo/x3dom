@@ -184,25 +184,6 @@ x3dom.registerNodeType(
 
                 //todo: configure the transform attributes with the transformations from the grpah
 
-
-                // check if this is the start of a multipart subgraph. if so, put the subgrpah we just created inside a
-                // Multipart element, and build an idmap to send with it via the DOM
-
-                if(gltfNode.extras)
-                {
-                    if(gltfNode.extras.multipart)
-                    {
-                        context = {}; // new context for hereon in
-                        context.multipart = true;
-                        context.idmap = {
-                            "numberOfIDs" : 0,
-                            "maxGeoCount" : 0,
-                            "mapping"     : [],
-                            "appearance"  : []
-                        };
-                    }
-                }
-
                 // add any meshes of this node as as new glTFGeometry nodes
                 if(gltfNode.meshes) {
                     gltfNode.meshes.forEach(function(mesh) {
@@ -215,22 +196,6 @@ x3dom.registerNodeType(
                     gltfNode.children.forEach(function(child) {
                         newNode.appendChild(that._createChild(sceneDoc, header.nodes[child], context));
                     });
-                }
-
-                // check if this is the start of a multipart subgraph. if so, put the subgrpah we just created inside a
-                // Multipart element
-                if(gltfNode.extras)
-                {
-                    if (gltfNode.extras.multipart)
-                    {
-                        var multipartNode = sceneDoc.createElement("Multipart");
-                        multipartNode.setAttribute("url","");
-                        multipartNode.setAttribute("urlIDMap","");
-                        multipartNode._idMap = context.idmap;
-                        multipartNode._inlScene = newNode;
-
-                        newNode = multipartNode;
-                    }
                 }
 
                 return newNode;
@@ -259,16 +224,34 @@ x3dom.registerNodeType(
 
                 shapeNode.appendChild(geometryNode);
 
-                if(context.multipart)
+                // check if this is the start of a multipart subgraph. if so, put the subgrpah we just created inside a
+                // Multipart element, and build an idmap to send with it via the DOM
+                var multipart = header.meshes[meshname].primitives[0].attributes["IDMAP"] != undefined;
+                if(multipart)
                 {
                     //this is a multipart mesh, so make the shape node an inline scene of a multipart element
                     //this has to be set in the xml (rather than the x3d graph) so that the VERTEX_ID flag will
                     //be set by the generateProperties method of Utils.js
                     geometryNode.setAttribute("isMultipart","true");
                     geometryNode.setAttribute("idsPerVertex","true");
-                    that._addMeshToIdMap(meshname, context.idmap);
+
                     //need an appearance node to which the common surface shader is added
                     shapeNode.appendChild(sceneDoc.createElement("Appearance"));
+
+                    //place the shape node inside a multipart node, with a generated idmap
+                    var multipartNode = sceneDoc.createElement("Multipart");
+                    multipartNode.setAttribute("url","");
+                    multipartNode.setAttribute("urlIDMap","");
+                    multipartNode._idMap = {
+                        "numberOfIDs" : 0,
+                        "maxGeoCount" : 0,
+                        "mapping"     : [],
+                        "appearance"  : []
+                    };
+                    that._addMeshToIdMap(meshname, multipartNode._idMap);
+                    multipartNode._inlScene = shapeNode;
+
+                    shapeNode = multipartNode;
                 }
                 else // there is nothing wrong with creating the material below, but why waste the time if we know we don't have to?
                 {
