@@ -182,7 +182,12 @@ x3dom.registerNodeType(
 
                 var newNode = sceneDoc.createElement("Transform");
 
-                //todo: configure the transform attributes with the transformations from the grpah
+                if(gltfNode.matrix)
+                {
+                    //the transform is supplied as a matrix, so use a MatrixTransform instead of a Transform node
+                    newNode = sceneDoc.createElement("MatrixTransform");
+                    newNode.setAttribute("matrix",gltfNode.matrix.toString());
+                }
 
                 // add any meshes of this node as as new glTFGeometry nodes
                 if(gltfNode.meshes) {
