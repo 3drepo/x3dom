@@ -44,7 +44,7 @@ x3dom.registerNodeType(
              * @instance
              */
             this.addField_SFBool(ctx, 'isPickable', true);
-            
+
             /**
              * Defines the shape type for sorting.
              * @var {x3dom.fields.SFString} sortType
@@ -133,7 +133,7 @@ x3dom.registerNodeType(
                     this.loadIDMap();
                 }
             },
-            
+
             getVolume: function ()
             {
                 var vol = this._graph.volume;
@@ -192,6 +192,8 @@ x3dom.registerNodeType(
                         e.type = "mouseover";
                         this.callEvtHandler("onmouseover", e);
 
+						console.log("MU: " + e.mouseup + " B: " + e.button + " LB: " + this._lastButton);
+
                         //if some mouse button is down fire mousedown event
                         if (!e.mouseup && e.button && e.button != this._lastButton) {
                             e.type = "mousedown";
@@ -206,7 +208,6 @@ x3dom.registerNodeType(
                         if (e.mouseup || (this._lastButton != 0 && e.button == 0)) {
                             e.type = "mouseup";
                             this.callEvtHandler("onmouseup", e);
-                            this._lastButton = 0;
 
                             if ( e.pickedId == this._lastClickedId ) {
                                 this._lastClickedId = -1;
@@ -244,6 +245,11 @@ x3dom.registerNodeType(
                         this.callEvtHandler("onmouseleave", e);
                         this._lastId = -1;
                     }
+
+						if (e.mouseup)
+					{
+						this._lastButton = 0;
+					}
                 }
 
             },
@@ -479,7 +485,7 @@ x3dom.registerNodeType(
 
                 //scale image data array size to the next highest power of two
                 size = x3dom.Utils.nextHighestPowerOfTwo(size);
-                
+
                 var visibilityData = size + " " + size + " 1";
 
                 for (i=0; i<size*size; i++)
@@ -563,7 +569,7 @@ x3dom.registerNodeType(
                         shapeDEF = shapes[s].getAttribute("DEF") ||
                                    shapes[s].getAttribute("def");
 
-                        if(shapeDEF && this._visiblePartsPerShape[shapeDEF] && 
+                        if(shapeDEF && this._visiblePartsPerShape[shapeDEF] &&
                            this._visiblePartsPerShape[shapeDEF].val == 0)
                         {
                             shapes[s].setAttribute("render", "false");
@@ -581,7 +587,7 @@ x3dom.registerNodeType(
                         }
 
                         var appearances = shapes[s].getElementsByTagName("Appearance");
-                        
+
                         if (appearances.length)
                         {
                             for (var a = 0; a < appearances.length; a++)
@@ -589,7 +595,7 @@ x3dom.registerNodeType(
                                 //Remove DEF/USE
                                 appearances[a].removeAttribute("DEF");
                                 appearances[a].removeAttribute("USE");
-                                
+
                                 appearances[a].setAttribute("sortType", this._vf.sortType);
                                 appearances[a].setAttribute("sortKey", this._vf.sortKey);
 
@@ -682,7 +688,7 @@ x3dom.registerNodeType(
                         {
                             //Add Appearance
                             appearance = document.createElement("Appearance");
-                            
+
                             //Add Material
                             if (firstMat) {
                                 firstMat = false;
@@ -814,9 +820,9 @@ x3dom.registerNodeType(
                         {
                             that.count++;
                             var refreshTime = +xhr.getResponseHeader("Refresh") || 5;
-                            x3dom.debug.logInfo('XHR status: ' + xhr.status + ' - Await Transcoding (' + that.count + '/' + that.numRetries + '): ' + 
+                            x3dom.debug.logInfo('XHR status: ' + xhr.status + ' - Await Transcoding (' + that.count + '/' + that.numRetries + '): ' +
                                                 'Next request in ' + refreshTime + ' seconds');
-                      
+
                             window.setTimeout(function() {
                                 that._nameSpace.doc.downloadCount -= 1;
                                 that.loadInline();
@@ -825,7 +831,7 @@ x3dom.registerNodeType(
                         }
                         else
                         {
-                            x3dom.debug.logError('XHR status: ' + xhr.status + ' - Await Transcoding (' + that.count + '/' + that.numRetries + '): ' + 
+                            x3dom.debug.logError('XHR status: ' + xhr.status + ' - Await Transcoding (' + that.count + '/' + that.numRetries + '): ' +
                                                  'No Retries left');
                             that._nameSpace.doc.downloadCount -= 1;
                             that.count = 0;
@@ -866,7 +872,7 @@ x3dom.registerNodeType(
                     if (inlScene)
                     {
                         var nsDefault = "ns" + that._nameSpace.childSpaces.length;
-                        
+
                         var nsName = (that._vf.nameSpaceName.length != 0) ?
                                       that._vf.nameSpaceName.toString().replace(' ','') : nsDefault;
 
