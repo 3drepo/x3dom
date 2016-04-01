@@ -1568,9 +1568,8 @@ x3dom.gfx_webgl = (function () {
     {
         var ps = scene._webgl.pickScale;
         var bufHeight = scene._webgl.fboPick.height;
-        var x = lastX * ps * (this.canvas.width / this.canvas.offsetWidth);
-        var y = (bufHeight - 1) - lastY * ps * (this.canvas.width / this.canvas.offsetWidth);
-
+        var x = lastX * ps;
+        var y = (bufHeight - 1) - lastY * ps;
 
         var indicesReady = false;
 
@@ -3082,6 +3081,8 @@ x3dom.gfx_webgl = (function () {
                         if (objId >= multiPart._minId && objId <= multiPart._maxId)
                         {
                             hitObject = multiPart._xmlNode;
+
+							viewarea._pickingInfo.pickObj = multiPart;
 
                             event = {
                                 target: multiPart._xmlNode,

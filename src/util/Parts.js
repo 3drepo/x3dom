@@ -1297,7 +1297,7 @@ x3dom.Parts = function(multiPart, ids, colorMap, emissiveMap, specularMap, visib
         var i, partID, pixelIDFront, pixelIDBack, material;
         var dtColorFront, eaColorFront, ssColorFront;
         var dtColorBack, eaColorBack, ssColorBack;
-		
+
         if (ids.length && ids.length > 1) //Multi select
         {
             //Get original pixels
@@ -1312,25 +1312,28 @@ x3dom.Parts = function(multiPart, ids, colorMap, emissiveMap, specularMap, visib
 
                 material = this.multiPart._materials[partID];
 
-                material.reset();
+				if (material)
+				{
+					material.reset();
 
-                if( !material._highlighted )
-                {
-                    dtPixels[pixelIDFront] = new x3dom.fields.SFColorRGBA(material._diffuseColor.r, material._diffuseColor.g,
-                                                                          material._diffuseColor.b, 1.0 - material._transparency);
-                    eaPixels[pixelIDFront] = new x3dom.fields.SFColorRGBA(material._emissiveColor.r, material._emissiveColor.g,
-                                                                          material._emissiveColor.b, material._ambientIntensity);
-                    ssPixels[pixelIDFront] = new x3dom.fields.SFColorRGBA(material._specularColor.r, material._specularColor.g,
-                                                                          material._specularColor.b, material._shininess);
+					if( !material._highlighted )
+					{
+						dtPixels[pixelIDFront] = new x3dom.fields.SFColorRGBA(material._diffuseColor.r, material._diffuseColor.g,
+																			  material._diffuseColor.b, 1.0 - material._transparency);
+						eaPixels[pixelIDFront] = new x3dom.fields.SFColorRGBA(material._emissiveColor.r, material._emissiveColor.g,
+																			  material._emissiveColor.b, material._ambientIntensity);
+						ssPixels[pixelIDFront] = new x3dom.fields.SFColorRGBA(material._specularColor.r, material._specularColor.g,
+																			  material._specularColor.b, material._shininess);
 
-                    dtPixels[pixelIDBack] = new x3dom.fields.SFColorRGBA(material._backDiffuseColor.r, material._backDiffuseColor.g,
-                                                                         material._backDiffuseColor.b, 1.0 - material._backTransparency);
-                    eaPixels[pixelIDBack] = new x3dom.fields.SFColorRGBA(material._backEmissiveColor.r, material._backEmissiveColor.g,
-                                                                         material._backEmissiveColor.b, material._backAmbientIntensity);
-                    ssPixels[pixelIDBack] = new x3dom.fields.SFColorRGBA(material._backSpecularColor.r, material._backSpecularColor.g,
-                                                                         material._backSpecularColor.b, material._backShininess);
-                }
-            }
+						dtPixels[pixelIDBack] = new x3dom.fields.SFColorRGBA(material._backDiffuseColor.r, material._backDiffuseColor.g,
+																			 material._backDiffuseColor.b, 1.0 - material._backTransparency);
+						eaPixels[pixelIDBack] = new x3dom.fields.SFColorRGBA(material._backEmissiveColor.r, material._backEmissiveColor.g,
+																			 material._backEmissiveColor.b, material._backAmbientIntensity);
+						ssPixels[pixelIDBack] = new x3dom.fields.SFColorRGBA(material._backSpecularColor.r, material._backSpecularColor.g,
+																			 material._backSpecularColor.b, material._backShininess);
+					}
+				}
+			}
 
             this.colorMap.setPixels(dtPixels, false);
             this.emissiveMap.setPixels(eaPixels, false);
@@ -1400,7 +1403,7 @@ x3dom.Parts = function(multiPart, ids, colorMap, emissiveMap, specularMap, visib
                 pixel.r = visibilityAsInt;
 
                 this.multiPart._partVisibility[parts.ids[0]] = visibility;
-                
+
                 //get used shapes
                 usage = this.multiPart._idMap.mapping[parts.ids[0]].usage;
 
