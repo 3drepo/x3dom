@@ -255,6 +255,8 @@ x3dom.registerNodeType(
                     };
                     that._addMeshToIdMap(meshname, multipartNode._idMap);
                     multipartNode._inlScene = shapeNode;
+                    		
+                    multipartNode.onclick = this._xmlNode.onclick;
 
                     shapeNode = multipartNode;
                 }
@@ -290,6 +292,7 @@ x3dom.registerNodeType(
                         "appearance" : primitive.material,
                         "min" : positionsAccessor.min.toString(),
                         "max" : positionsAccessor.max.toString(),
+			"name" : (primitive.extras ? primitive.extras.refID : undefined),
                         "usage" : [ meshName ]
                     }
 

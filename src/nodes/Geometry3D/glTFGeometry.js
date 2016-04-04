@@ -158,6 +158,43 @@ x3dom.registerNodeType(
             // PRIVATE FUNCTIONS
             //----------------------------------------------------------------------------------------------------------
 
+			_setBoundingBox: function(header, primitives) 
+			{
+				"use strict";
+				
+				if (primitives.length)
+				{
+					var firstVertexPrimitive = primitives[0].attributes["POSITION"];
+					var minVertex = header.accessors[firstVertexPrimitive].min;
+					var maxVertex = header.accessors[firstVertexPrimitive].max;
+					 
+					for(var i = 1; i < primitives.length; i++)
+					{
+						var c_idx = 0;
+						var minPrimitiveVertex = header.accessors[firstVertexPrimitive].min;
+						var maxPrimitiveVertex = header.accessors[firstVertexPrimitive].max;
+											
+						for(c_idx = 0; c_idx < 3; c_idx++)
+						{
+							if (minVertex[c_idx] > minPrimitiveVertex[c_idx])
+							{
+								minVertex[c_idx] = minPrimitiveVertex[c_idx];
+							}
+							
+							if (maxVertex[c_idx] < maxPrimitiveVertex[c_idx])
+							{
+								maxVertex[c_idx] = maxPrimitiveVertex[c_idx];
+							}
+						}
+					}
+					
+					var minVec = (new x3dom.fields.SFVec3f()).setValueByStr(minVertex.join(" "));
+					var maxVec = (new x3dom.fields.SFVec3f()).setValueByStr(maxVertex.join(" "));
+					
+					this._mesh._vol.setBounds(minVec, maxVec);
+				}
+			},
+
             /**
              * Updates the render data stored in the given objects with data read from the gltf.
              *
@@ -494,6 +531,7 @@ x3dom.registerNodeType(
             //    multipart.primitives[80]._visible = false;
             //    multipart.primitives[59]._visible = false;
 
+				this._setBoundingBox(header, multipart.primitives);
 
                 that._rebuildMultipart(multipart);
 
