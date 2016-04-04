@@ -72,7 +72,7 @@ x3dom.registerNodeType(
                     this._nameSpace.setBaseURL(that._path);
 
                     //TODO: does this work for embedded (data:) uris?
-                    this._nameSpace.doc.manageDownload(uri, "text/json", function(xhr) {
+                    this._nameSpace.doc.manageDownload(uri, "text", function(xhr) {
                         that._onceLoaded(xhr);
                     });
                 }

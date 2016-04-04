@@ -119,7 +119,7 @@ x3dom.DrawableCollection.prototype.cull = function (transform, graphState, singl
 
         graphState.coverage = (r * 2.0) / projPixelLength;
 
-        if (this.smallFeatureThreshold > 0 && graphState.coverage < this.smallFeatureThreshold && 
+        if (this.smallFeatureThreshold > 0 && graphState.coverage < this.smallFeatureThreshold &&
             graphState.needCulling) {
             return -1;
         }
@@ -127,7 +127,7 @@ x3dom.DrawableCollection.prototype.cull = function (transform, graphState, singl
 
     // not culled, incr node cnt
     this.numberOfNodes++;
-    
+
     return planeMask;   // >= 0 means inside or overlap
 };
 
