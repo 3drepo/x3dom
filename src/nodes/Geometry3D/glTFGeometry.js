@@ -88,7 +88,7 @@ x3dom.registerNodeType(
             //the pathname of the gltf header. external resource uris will be relative to this. if the gltf header
             //is set directly, this must also be set.
             this.gltfHeaderBaseURI = null;
-			
+
 			// Bounding box read from the header
 			this.headerBBoxSet    = false;
 			this.headerBBoxSize   = new x3dom.fields.SFVec3f(-1.0,-1.0,-1.0);
@@ -163,51 +163,52 @@ x3dom.registerNodeType(
             // PRIVATE FUNCTIONS
             //----------------------------------------------------------------------------------------------------------
 
-			_setBoundingBox: function(header, primitives) 
+			_setBoundingBox: function(header, primitives)
 			{
 				"use strict";
-				
+
 				if (primitives.length)
 				{
 					var firstVertexPrimitive = primitives[0].attributes["POSITION"];
 					var minVertex = header.accessors[firstVertexPrimitive].min;
 					var maxVertex = header.accessors[firstVertexPrimitive].max;
-					 
+
 					for(var i = 1; i < primitives.length; i++)
 					{
 						var c_idx = 0;
-						var minPrimitiveVertex = header.accessors[firstVertexPrimitive].min;
-						var maxPrimitiveVertex = header.accessors[firstVertexPrimitive].max;
-											
+						var primitivePosition = primitives[i].attributes["POSITION"];
+						var minPrimitiveVertex = header.accessors[primitivePosition].min;
+						var maxPrimitiveVertex = header.accessors[primitivePosition].max;
+
 						for(c_idx = 0; c_idx < 3; c_idx++)
 						{
 							if (minVertex[c_idx] > minPrimitiveVertex[c_idx])
 							{
 								minVertex[c_idx] = minPrimitiveVertex[c_idx];
 							}
-							
+
 							if (maxVertex[c_idx] < maxPrimitiveVertex[c_idx])
 							{
 								maxVertex[c_idx] = maxPrimitiveVertex[c_idx];
 							}
 						}
 					}
-					
+
 					this.headerBBoxCenter.x = (minVertex[0] + maxVertex[0]) * 0.5;
 					this.headerBBoxCenter.y = (minVertex[1] + maxVertex[1]) * 0.5;
 					this.headerBBoxCenter.z = (minVertex[2] + maxVertex[2]) * 0.5;
-					
+
 					this.headerBBoxSize.x   = maxVertex[0] - minVertex[0];
 					this.headerBBoxSize.y   = maxVertex[1] - minVertex[1];
 					this.headerBBoxSize.z   = maxVertex[2] - minVertex[2];
-					
-					
+
+
 					this._parentNodes[0]._vf["bboxCenter"] = this.headerBBoxCenter;
 					this._parentNodes[0]._vf["bboxSize"]   = this.headerBBoxSize;
 					this._parentNodes[0]._graph.volume.valid = false;
-					
+
 					this._mesh._vol.setBoundsByCenterSize(this.headerBBoxCenter, this.headerBBoxSize);
-					
+
 					this.headerBBoxSet    = true;
 				}
 			},
@@ -925,7 +926,7 @@ x3dom.registerNodeType(
 					if (self.headerBBoxSet)
 					{
 						vol.setBoundsByCenterSize(self.headerBBoxCenter, self.headerBBoxSize);
-					} else {						
+					} else {
                     	if (typeof shapeNode._vf["bboxCenter"] != 'undefined' &&
                         	typeof shapeNode._vf["bboxSize"]   != 'undefined')
                     	{
