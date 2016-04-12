@@ -99,7 +99,9 @@ x3dom.registerNodeType(
 
             this._bufferViewGLBuffers = {};
 			
-			this.memoryManager = null;
+            this.memoryManager = null;
+			
+            this.visibleIDs = [];
 
         },
 
@@ -559,7 +561,6 @@ x3dom.registerNodeType(
 				
 				that.memoryManager.onmessage = function(event) {
 					// Here we recreate the OpenGL buffers
-					//debugger;
 					
 					var ATTRIBUTE_TARGET = 34962;
 					var INDEX_TARGET     = 34963;
@@ -633,7 +634,7 @@ x3dom.registerNodeType(
 				that.memoryManager.postMessage({
 					type: "registerMe",
 					id: that._DEF,
-					ops: 30,
+					ops: 5,
 					buffer: myBuffers,
 					bufferViews: myBufferViews,
 					submeshes: that._createMultipartSubmeshes(requestedMesh)
@@ -694,55 +695,39 @@ x3dom.registerNodeType(
 				*/
             },
 
-			changeVisibility: function(IDs)
+		changeVisibility: function(IDs)
+		{
+			var changed = false;
+		
+			if (this.visibleIDs.length === IDs.length)
 			{
-				this.memoryManager.postMessage(
-					{
-						type: "changeVisibility",
-						ids: IDs
-					}
-				);
-				
-				/*
-				var that = this;
-				var changed = false;
-				
-				if (that._multipart)
+				for (var i = 0; i < this.visibleIDs.length; i++)
 				{
-					for(var i = 0; i < that._multipart.submeshes.length; i++)
+					if (this.visibleIDs[i] !== IDs[i])
 					{
-						var submesh = that._multipart.submeshes[i];
-						var oldVisible = submesh.primitive._visible;
-						
-						if (submesh.primitive.extras && submesh.primitive.extras.refID)
+						changed = true;
+						break;
+					}
+				}
+			} else {
+				changed = true;
+			}
+			
+			if (changed)
+			{
+				if (this.memoryManager)
+				{
+					this.memoryManager.postMessage(
 						{
-							var meshID = submesh.primitive.extras.refID;
-							
-							if (IDs.indexOf(meshID) > -1)
-							{
-								submesh.primitive._visible = true;
-							} else {
-								submesh.primitive._visible = false;
-							}
-							
-						} else {
-							submesh.primitive._visible = true;
-						}	
-						
-						if (oldVisible != submesh.primitive._visible)
-						{
-							changed = true;
+							type: "changeVisibility",
+							ids: IDs
 						}
-					}
-					
-					if (changed)
-					{
-						that._rebuildMultipart(that._multipart);
-						that._graphicsMemoryManager.rebuild();
-					}
-				}*/
-				
-			},
+					);
+				}
+			
+				this.visibleIDs = IDs;
+			}				
+		},
 
             writeGPUBlock: function( block )
             {
@@ -812,8 +797,6 @@ x3dom.registerNodeType(
 
                 var primitiveCount = multipart.indices.count / 3;
 				
-				console.log("PC: " + primitiveCount);
-				
                 // set up the webgl references and counts
 
                 var meshIdx = 0;
@@ -845,8 +828,6 @@ x3dom.registerNodeType(
                     shape["_" + webglattribute.x3domTypeID + "StrideOffset"][1] = attribute.byteOffset + attribute.glBufferOffset;
                     shape._webgl[webglattribute.x3domTypeID + "Type"]           = attribute.componentType;
 					
-					console.log(attributeId + " " + attribute.glBufferOffset);
-            //      that._mesh["_num" + webglattribute.x3domShortTypeID + "Components"] = attribute.buffer.elementCount;
                 }
 
                 // set the flags
