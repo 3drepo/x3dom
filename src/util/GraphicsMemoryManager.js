@@ -19,8 +19,10 @@ x3dom.GraphicsMemoryBlock = function()
 
 x3dom.GraphicsMemoryBlock.prototype.write = function(array, offset)
 {
-    this._manager.gl.bindBuffer(this._buffer.gltarget, this._buffer.glbuffer);
-    this._manager.gl.bufferSubData(this._buffer.gltarget, this.glBufferOffset + offset, array)
+	var that = this;
+	
+    that._manager.gl.bindBuffer(that._buffer.gltarget, that._buffer.glbuffer);
+    that._manager.gl.bufferSubData(that._buffer.gltarget, that.glBufferOffset + offset, array)
 };
 
 // Signals the content has changed. Resizes the block if necessary but always marks it as dirty.
@@ -97,10 +99,14 @@ x3dom.GraphicsMemoryManager.prototype.rebuild = function()
 
         if(totalBytes > buffer.glbuffersize) {
             //need a new buffer
-
+				
+			var oldBuffer = buffer.glbuffer;
             buffer.glbuffer = gl.createBuffer();
             gl.bindBuffer(buffer.gltarget, buffer.glbuffer);
             gl.bufferData(buffer.gltarget, totalBytes, gl.DYNAMIC_DRAW);
+			
+			gl.deleteBuffer(oldBuffer);
+			
             buffer.glbuffersize = totalBytes;
 
             for(var i = 0; i < buffer.blocks.length; i++)

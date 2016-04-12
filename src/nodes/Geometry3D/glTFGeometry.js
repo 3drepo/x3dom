@@ -98,6 +98,8 @@ x3dom.registerNodeType(
             this._bufferData = {};
 
             this._bufferViewGLBuffers = {};
+			
+			this.memoryManager = null;
 
         },
 
@@ -202,9 +204,8 @@ x3dom.registerNodeType(
 					this.headerBBoxSize.y   = maxVertex[1] - minVertex[1];
 					this.headerBBoxSize.z   = maxVertex[2] - minVertex[2];
 
-
-					this._parentNodes[0]._vf["bboxCenter"] = this.headerBBoxCenter;
-					this._parentNodes[0]._vf["bboxSize"]   = this.headerBBoxSize;
+					this._parentNodes[0]._xmlNode.setAttribute("bboxCenter", this.headerBBoxCenter.toGL().join(","));
+					this._parentNodes[0]._xmlNode.setAttribute("bboxSize", this.headerBBoxSize.toGL().join(","));
 					this._parentNodes[0]._graph.volume.valid = false;
 
 					this._mesh._vol.setBoundsByCenterSize(this.headerBBoxCenter, this.headerBBoxSize);
@@ -317,7 +318,7 @@ x3dom.registerNodeType(
                         x3domTypeID : x3domTypeID,
                         x3domShortTypeID : x3domShortTypeID
                     };
-                }
+                };
 
                 var shaderAttributes = [
                     shaderParameterCtor(POSITION_BUFFER_IDX, "POSITION", "coord", "Pos"),
@@ -354,7 +355,8 @@ x3dom.registerNodeType(
                 shape._nameSpace.doc.needRender = true;
 
                 x3dom.BinaryContainerLoader.checkError(gl);
-
+				
+				that._setBoundingBox(that.gltfHeader, [primitive]);
             },
 
             //----------------------------------------------------------------------------------------------------------
@@ -503,6 +505,44 @@ x3dom.registerNodeType(
             // GLTF MULTIPART FUNCTIONALITY
             //----------------------------------------------------------------------------------------------------------
 
+			_createGLBuffers: function(gl, header, attrKeys, buffers, target, objs)
+			{
+				"use strict";
+			
+				// Create index buffer
+				var totalBytes = 0;
+				var attrBuffers = [];
+				
+				for (i = 0; i < attrKeys.length; i++)
+				{
+					var key = attrKeys[i];
+					
+					if (header.bufferViews[key].target === target)
+					{
+						attrBuffers.push(buffers[i]);
+						totalBytes += buffers[i].byteLength;
+					}	
+				}
+									
+				var newGLBuffer = gl.createBuffer();
+				gl.bindBuffer(target, newGLBuffer);
+				gl.bufferData(target, totalBytes, gl.DYNAMIC_DRAW);
+				
+				//console.log(target + " TB: " + totalBytes);
+				
+				totalBytes = 0;
+				
+				for (i = 0; i < attrBuffers.length; i++)
+				{
+					gl.bufferSubData(target, totalBytes, new Uint8Array(attrBuffers[i]));
+					
+					objs[i].glBufferOffset = totalBytes;
+					objs[i].glBuffer       = newGLBuffer;
+					
+					totalBytes += attrBuffers[i].byteLength;
+				}
+			},
+
             _updateRenderDataForMultipart: function(shape, gl, requestedMesh)
             {
                 //This is a multipart mesh. Each primitive is a submesh. The primitive accessors define segments of a
@@ -512,31 +552,128 @@ x3dom.registerNodeType(
 
                 var that = this;
                 var header = that.gltfHeader;
+				var i;
+				that.gl = gl;
+			
+				that.memoryManager = new Worker("public/js/external/multiThreadMemoryManager.js");
+				
+				that.memoryManager.onmessage = function(event) {
+					// Here we recreate the OpenGL buffers
+					//debugger;
+					
+					var ATTRIBUTE_TARGET = 34962;
+					var INDEX_TARGET     = 34963;
+					
+					var gl = that.gl;
+					var header = that.gltfHeader;
+					
+					that._multipart.indices = {
+						count: event.data.count
+					};
+					that._createGLBuffers(gl, header, event.data.keys, event.data.buffers, INDEX_TARGET, [that._multipart.indices]);
+					
+					var attributeObjects = [];
+					
+					for (i = 0; i < event.data.keys.length; i++)
+					{
+						var key = event.data.keys[i];
+						
+						for (var attrKey in that._multipart.attributes)
+						{
+							if (that._multipart.attributes.hasOwnProperty(attrKey))
+							{
+								var attribute = that._multipart.attributes[attrKey];
+							
+								if (attribute.bufferView === key)
+								{
+									attributeObjects.push(attribute);
+								}	
+							}
+						}
+					}
+					
+					that._createGLBuffers(gl, header, event.data.keys, event.data.buffers, ATTRIBUTE_TARGET, attributeObjects);	
+					
+					this.postMessage(
+						{
+							type: "returnBuffers",
+							keys: event.data.keys,
+							buffers: event.data.buffers
+						}
+					);		
+					
+					that._rebindMultipart(that._multipart);	
+				};
+				
+				var myBufferViews = [], bufferView;
+				
+				for (var k in header.bufferViews)
+				{
+					if (header.bufferViews.hasOwnProperty(k))
+					{
+						bufferView = header.bufferViews[k];
+						
+						if (bufferView.extras.refID === that._DEF)
+						{
+							bufferView.key = k;
+							myBufferViews.push(bufferView);
+						}
+					}
+				}
+				
+				var fullBuffer = that._bufferData[that._DEF.substring(0, that._DEF.length-2)].content;
+				var myBuffers = [];
+				
+				for (var i = 0; i < myBufferViews.length; i++)
+				{
+					bufferView = myBufferViews[i];
+					myBuffers.push(fullBuffer.slice(bufferView.byteOffset, bufferView.byteOffset + bufferView.byteLength).buffer);
+				}
 
-                that._graphicsMemoryManager = x3dom.GraphicsMemoryManager.getGraphicsMemoryManager(gl);
-
+				that.memoryManager.postMessage({
+					type: "registerMe",
+					id: that._DEF,
+					ops: 30,
+					buffer: myBuffers,
+					bufferViews: myBufferViews,
+					submeshes: that._createMultipartSubmeshes(requestedMesh)
+				},
+				myBuffers);
+				
                 var multipart = {};
                 that._multipart = multipart;
                 multipart.shape = shape;
                 multipart.gl = gl;
                 shape._gltfMultipart = multipart;
 
+
                 // find all the attributes in use by these submeshes
                 multipart.attributes = that._createMultipartAttributes(requestedMesh);
+
+                // create the binding parameters for the accessors
+//                that._createAttributeBindingParameters(multipart.attributes, multipart.gpublocks, multipart.submeshes);
+
+                multipart.mode = requestedMesh.primitives[0].mode;
+				/*
+                multipart.indices = {
+                  gpublock : multipart.gpublocks[multipart.submeshes[0].indices.bufferView]
+                };
+				*/
+				
+				multipart.primitives = requestedMesh.primitives;
+							
+				that._setBoundingBox(header, multipart.primitives);
+
+	            //that._rebuildMultipart(multipart);
+
+				/*
+                that._graphicsMemoryManager = x3dom.GraphicsMemoryManager.getGraphicsMemoryManager(gl);
 
                 // create a set of objects representing where to find the geometry of each submesh
                 multipart.submeshes = that._createMultipartSubmeshes(requestedMesh);
 
                 // create a set of gpu blocks, one for each bufferview
                 multipart.gpublocks = that._createGPUBlocksForBufferViews(that._graphicsMemoryManager);
-
-                // create the binding parameters for the accessors
-                that._createAttributeBindingParameters(multipart.attributes, multipart.gpublocks, multipart.submeshes);
-                multipart.mode = requestedMesh.primitives[0].mode;
-                multipart.indices = {
-                  gpublock : multipart.gpublocks[multipart.submeshes[0].indices.bufferView]
-                };
-
 
                 multipart.primitives = requestedMesh.primitives;
                 for(var i = 0; i < multipart.primitives.length; i++)
@@ -554,11 +691,63 @@ x3dom.registerNodeType(
                 that._rebuildMultipart(multipart);
 
                 that._graphicsMemoryManager.rebuild();
+				*/
             },
+
+			changeVisibility: function(IDs)
+			{
+				this.memoryManager.postMessage(
+					{
+						type: "changeVisibility",
+						ids: IDs
+					}
+				);
+				
+				/*
+				var that = this;
+				var changed = false;
+				
+				if (that._multipart)
+				{
+					for(var i = 0; i < that._multipart.submeshes.length; i++)
+					{
+						var submesh = that._multipart.submeshes[i];
+						var oldVisible = submesh.primitive._visible;
+						
+						if (submesh.primitive.extras && submesh.primitive.extras.refID)
+						{
+							var meshID = submesh.primitive.extras.refID;
+							
+							if (IDs.indexOf(meshID) > -1)
+							{
+								submesh.primitive._visible = true;
+							} else {
+								submesh.primitive._visible = false;
+							}
+							
+						} else {
+							submesh.primitive._visible = true;
+						}	
+						
+						if (oldVisible != submesh.primitive._visible)
+						{
+							changed = true;
+						}
+					}
+					
+					if (changed)
+					{
+						that._rebuildMultipart(that._multipart);
+						that._graphicsMemoryManager.rebuild();
+					}
+				}*/
+				
+			},
 
             writeGPUBlock: function( block )
             {
                 var that = this;
+				
                 if(block === that._multipart.indices.gpublock)
                 {
                     // the request is for index data - rebuild the indices as we go
@@ -575,7 +764,6 @@ x3dom.registerNodeType(
 
                         block.write(indexDataView.buffer, indices.currentOffset);
                     }
-
                 }
                 else
                 {
@@ -612,7 +800,7 @@ x3dom.registerNodeType(
                         x3domTypeID : x3domTypeID,
                         x3domShortTypeID : x3domShortTypeID
                     };
-                }
+                };
 
                 var gltfAttributeMap = {
                     POSITION: shaderParameterCtor(POSITION_BUFFER_IDX, "POSITION", "coord", "Pos"),
@@ -623,7 +811,9 @@ x3dom.registerNodeType(
                 };
 
                 var primitiveCount = multipart.indices.count / 3;
-
+				
+				console.log("PC: " + primitiveCount);
+				
                 // set up the webgl references and counts
 
                 var meshIdx = 0;
@@ -637,8 +827,8 @@ x3dom.registerNodeType(
 
                 shape._webgl.externalGeometry =  1; //indexed EG
                 shape._webgl.indexType = gl.UNSIGNED_SHORT;
-                shape._webgl.indexOffset[meshIdx] = multipart.indices.gpublock.glBufferOffset;
-                shape._webgl.buffers[INDEX_BUFFER_IDX + bufferOffset] = multipart.indices.gpublock.glBuffer;
+                shape._webgl.indexOffset[meshIdx] = multipart.indices.glBufferOffset;
+                shape._webgl.buffers[INDEX_BUFFER_IDX + bufferOffset] = multipart.indices.glBuffer;
                 shape._webgl.drawCount[meshIdx] = multipart.indices.count;
 
                 // 3. set up the primitive type
@@ -650,10 +840,12 @@ x3dom.registerNodeType(
                     var attribute = multipart.attributes[attributeId];
                     var webglattribute = gltfAttributeMap[attributeId]
 
-                    shape._webgl.buffers[webglattribute.IDX + bufferOffset]     = attribute.gpublock.glBuffer;
+                    shape._webgl.buffers[webglattribute.IDX + bufferOffset]     = attribute.glBuffer;
                     shape["_" + webglattribute.x3domTypeID + "StrideOffset"][0] = attribute.byteStride;
-                    shape["_" + webglattribute.x3domTypeID + "StrideOffset"][1] = attribute.byteOffset + attribute.gpublock.glBufferOffset;
+                    shape["_" + webglattribute.x3domTypeID + "StrideOffset"][1] = attribute.byteOffset + attribute.glBufferOffset;
                     shape._webgl[webglattribute.x3domTypeID + "Type"]           = attribute.componentType;
+					
+					console.log(attributeId + " " + attribute.glBufferOffset);
             //      that._mesh["_num" + webglattribute.x3domShortTypeID + "Components"] = attribute.buffer.elementCount;
                 }
 
@@ -668,7 +860,6 @@ x3dom.registerNodeType(
             _rebuildMultipart: function(multipart){
 
                 // update the attribute data layout
-
                 for(var bufferViewId in multipart.gpublocks) {
 
                     var totalBytes = 0;
@@ -682,12 +873,22 @@ x3dom.registerNodeType(
                             //todo: worth precomputing a list of segments for each gpublock to save these lookups?
                             var segment = submesh.segments[bufferViewId];
                             if(segment) {
+								/*
+								if (submesh.primitive.extras && submesh.primitive.extras.refID)
+								{
+									segment.id = submesh.primitive.extras.refID;
+								}
+								*/
+								
                                 segment.currentOffset = totalBytes;
                                 totalBytes += segment.lengthBytes;
                                 gpublock._segments.push(segment); //store the segments in the gpu block to make rebuilding it easier
+
                             }
                         }
                     }
+								
+					console.log("BYTES: " + totalBytes);					
 
                     gpublock.resize(totalBytes);
                 }

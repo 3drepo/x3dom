@@ -39,6 +39,10 @@ x3dom.registerNodeType(
              * @instance
              */
             this.addField_MFString(ctx, 'url', []);
+			
+			this.partitioning = undefined;
+			
+			this.geometryNodes = [];
         },
         {
             nodeChanged: function ()
@@ -138,6 +142,8 @@ x3dom.registerNodeType(
                 // create the scene dom in x3d
                 var sceneDom = that._createSceneDOM(scene);
 
+				that._getPartitioningInfo(scene);
+
                 //debug
                 // var xmlString = (new XMLSerializer()).serializeToString(sceneDom);
 
@@ -148,6 +154,63 @@ x3dom.registerNodeType(
                 that.invalidateVolume();
                 that._nameSpace.doc.needRender = true;
             },
+
+			_getPartitioningInfo: function(scene) {
+				var that = this;
+				var partitionContent = {};
+								
+				if (scene.hasOwnProperty("extras"))
+				{
+					if (scene.extras.hasOwnProperty("partitioning"))
+					{
+						var uri = scene.extras.partitioning.uri;
+								
+						var download = [{
+							uri: uri,
+							responseType: "text",
+							destination: partitionContent
+						}];
+						
+						this._nameSpace.doc.manageDownloads(download, function() {
+							that.partitioning = JSON.parse(partitionContent._content);
+							
+							// Compute bounding boxes for meshes in the tree
+							var partitioningStack = [{
+								treePointer: that.partitioning
+							}];
+							
+							while(partitioningStack.length)
+							{
+								var currentProcessing = partitioningStack.splice(0,1)[0];
+								
+								if (currentProcessing.treePointer.hasOwnProperty("meshes"))
+								{
+									var currentMeshes = currentProcessing.treePointer.meshes;
+									
+									for(var meshID in currentMeshes)
+									{
+										if (currentMeshes.hasOwnProperty(meshID))
+										{
+											var min = new x3dom.fields.SFVec3f(currentMeshes[meshID].min[0], currentMeshes[meshID].min[1], currentMeshes[meshID].min[2]);
+											var max = new x3dom.fields.SFVec3f(currentMeshes[meshID].max[0], currentMeshes[meshID].max[1], currentMeshes[meshID].max[2]); 
+											
+											currentMeshes[meshID].bbox = new x3dom.fields.BoxVolume(min, max);
+										}
+									}
+								} else {
+									partitioningStack.push({
+										treePointer: currentProcessing.treePointer.left
+									});
+									
+									partitioningStack.push({
+										treePointer: currentProcessing.treePointer.right
+									});									
+								}
+							}
+						});
+					}
+				}
+			},
 
             _createSceneDOM: function(scene){
 
@@ -219,7 +282,8 @@ x3dom.registerNodeType(
                 var shapeNode = sceneDoc.createElement("Shape");
 
                 // create and apply the gltfgeometry node as the geometry part of the shape
-                var geometryNode = sceneDoc.createElement("glTFGeometry");
+				
+                geometryNode = sceneDoc.createElement("glTFGeometry");
                 geometryNode.setAttribute("url", that._uri);
                 geometryNode.setAttribute("mesh", meshname);
                 geometryNode.setAttribute("DEF", meshname);
@@ -228,6 +292,8 @@ x3dom.registerNodeType(
                 geometryNode.gltfHeaderBaseURI = that._path;
 
                 shapeNode.appendChild(geometryNode);
+				
+				this.geometryNodes.push(geometryNode);
 
                 // check if this is the start of a multipart subgraph. if so, put the subgrpah we just created inside a
                 // Multipart element, and build an idmap to send with it via the DOM
@@ -292,7 +358,7 @@ x3dom.registerNodeType(
                         "appearance" : primitive.material,
                         "min" : positionsAccessor.min.toString(),
                         "max" : positionsAccessor.max.toString(),
-			"name" : (primitive.extras ? primitive.extras.refID : undefined),
+                        "name" : (primitive.extras ? primitive.extras.refID : undefined),
                         "usage" : [ meshName ]
                     }
 
@@ -614,6 +680,186 @@ x3dom.registerNodeType(
                         return "mat3";
                     case WebGLRenderingContext.FLOAT_MAT4:
                         return "mat4";
+                }
+            },
+			
+			collectDrawableObjects: function (transform, drawableCollection, singlePath, invalidateCache, planeMask, clipPlanes)
+            {
+				var that = this;
+				
+				if (this.partitioning)
+				{
+					var originalBoundingBox = this.graphState().worldVolume;
+					var treeStack = [{
+						treePointer: this.partitioning,
+						bbox: originalBoundingBox
+					}]; // Stack containing parts of the tree ready to process
+				
+					var _setAxisValue = function(axis, vec, value)
+					{
+						if (axis === "X") { vec.x = value; }
+						else if (axis === "Y") { vec.y = value; }
+						else if (axis === "Z") { vec.z = value; }
+					};
+					
+					var visibleMeshes = {};
+					
+					var start = new Date().getTime();
+					
+					// Loop through the children elements and cull those from the
+					// multipart generation
+					while(treeStack.length)
+					{
+						var currentProcessing = treeStack.splice(0,1)[0];
+						
+						if (currentProcessing.treePointer.hasOwnProperty("meshes"))
+						{
+							var currentVisibleMeshes = currentProcessing.treePointer.meshes;
+							
+							for (var meshID in currentVisibleMeshes)
+							{
+								if (!visibleMeshes.hasOwnProperty(meshID) && currentVisibleMeshes.hasOwnProperty(meshID))
+								{
+									visibleMeshes[meshID] = currentVisibleMeshes[meshID];
+								}
+							} 
+
+						} else {
+							// Process the left branch
+							// First construct the bounding volume containing the left side
+							var leftMin    = currentProcessing.bbox.min.copy();
+							var leftMax    = currentProcessing.bbox.max.copy();
+							
+							_setAxisValue(currentProcessing.treePointer.axis, leftMax, currentProcessing.treePointer.value);
+							
+							var leftVolume = new x3dom.fields.BoxVolume(leftMin, leftMax);	
+							
+							// Create a fake graphState
+							var leftPlaneMask = drawableCollection.cull(transform, {
+								needCulling: true,
+								worldVolume: new x3dom.fields.BoxVolume(),
+								boundedNode : {
+									_vf : { render: true },
+									getVolume: function() { return leftVolume; }
+								}
+							}, singlePath, planeMask);
+							
+							if (leftPlaneMask >= 0)
+							{
+								treeStack.push({
+									treePointer: currentProcessing.treePointer.left,
+									bbox: leftVolume
+								});
+							} 
+							
+							// Process the right branch
+							// First construct the bounding volume containing the right side
+							var rightMin    = currentProcessing.bbox.min.copy();
+							var rightMax    = currentProcessing.bbox.max.copy();
+							
+							_setAxisValue(currentProcessing.treePointer.axis, rightMin, currentProcessing.treePointer.value);
+							
+							var rightVolume = new x3dom.fields.BoxVolume(rightMin, rightMax);	
+							
+							// Create a fake graphState
+							var rightPlaneMask = drawableCollection.cull(transform, {
+								needCulling: true,
+								worldVolume: new x3dom.fields.BoxVolume(),
+								boundedNode : {
+									_vf : { render: true },
+									getVolume: function() { return rightVolume; }
+								}
+							}, singlePath, planeMask);
+							
+							if (rightPlaneMask >= 0)
+							{
+								treeStack.push({
+									treePointer: currentProcessing.treePointer.right,
+									bbox: rightVolume
+								});
+							} 											
+						}					
+					}
+					
+					// Refined mesh culling
+					for(var meshID in visibleMeshes)
+					{
+						if (visibleMeshes.hasOwnProperty(meshID))
+						{
+							var subMeshPlaneMask = drawableCollection.cull(transform, {
+								needCulling: true,
+								worldVolume: new x3dom.fields.BoxVolume(),
+								boundedNode : {
+									_vf : { render: true },
+									getVolume: function() { return visibleMeshes[meshID].bbox; }
+								}
+							}, singlePath, planeMask);	
+						
+							if (subMeshPlaneMask < 0)
+							{
+								delete visibleMeshes[meshID];
+							}
+						}				
+					}
+					
+					var end = new Date().getTime();
+					var time = end - start;
+					//console.log('Execution time: ' + time);
+					//console.log("LEN: " + Object.keys(visibleMeshes).length);
+					
+					for(var i = 0; i < this.geometryNodes.length; i++)
+					{
+						this.geometryNodes[i]._x3domNode.changeVisibility(Object.keys(visibleMeshes));
+					}
+				}
+				
+                // check if multi parent sub-graph, don't cache in that case
+                if (singlePath && (this._parentNodes.length > 1))
+                    singlePath = false;
+
+                // an invalid world matrix or volume needs to be invalidated down the hierarchy
+                if (singlePath && (invalidateCache = invalidateCache || this.cacheInvalid()))
+                    this.invalidateCache();
+
+                // check if sub-graph can be culled away or render flag was set to false
+                planeMask = drawableCollection.cull(transform, this.graphState(), singlePath, planeMask);
+                if (planeMask < 0) {
+                    return;
+                }
+
+                var cnode, childTransform;
+
+                if (singlePath) {
+                    // rebuild cache on change and reuse world transform
+                    if (!this._graph.globalMatrix) {
+                        this._graph.globalMatrix = this.transformMatrix(transform);
+                    }
+                    childTransform = this._graph.globalMatrix;
+                }
+                else {
+                    childTransform = this.transformMatrix(transform);
+                }
+
+                var n = this._childNodes.length;
+
+                if (x3dom.nodeTypes.ClipPlane.count > 0) {
+                    var localClipPlanes = [];
+
+                    for (var j = 0; j < n; j++) {
+                        if ( (cnode = this._childNodes[j]) ) {
+                            if (x3dom.isa(cnode, x3dom.nodeTypes.ClipPlane) && cnode._vf.on && cnode._vf.enabled) {
+                                localClipPlanes.push({plane: cnode, trafo: childTransform});
+                            }
+                        }
+                    }
+
+                    clipPlanes = localClipPlanes.concat(clipPlanes);
+                }
+
+                for (var i=0; i<n; i++) {
+                    if ( (cnode = this._childNodes[i]) ) {
+                        cnode.collectDrawableObjects(childTransform, drawableCollection, singlePath, invalidateCache, planeMask, clipPlanes);
+                    }
                 }
             }
         }
