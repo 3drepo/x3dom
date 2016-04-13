@@ -99,10 +99,9 @@ x3dom.registerNodeType(
 
             this._bufferViewGLBuffers = {};
 			
-            this.memoryManager = null;
+			this.memoryManagerRegistered = false;
 			
             this.visibleIDs = [];
-
         },
 
         {
@@ -135,6 +134,14 @@ x3dom.registerNodeType(
                         that.gltfHeaderBaseURI = that._xmlNode.gltfHeaderBaseURI;
                     }
                 }
+				
+				if (that._xmlNode)
+				{
+					that.addMemoryManagerCallback = this._xmlNode.addMemoryManagerCallback;
+					that.memoryManager = this._xmlNode.memoryManager;
+				} else {
+					x3dom.debug.logError("Member must have access to callback member be set by glTF node for now");
+				}
 
                 if(!that.gltfHeader){
                     x3dom.debug.logError("Member glTFHeader must be set by glTF node for now");
@@ -229,7 +236,7 @@ x3dom.registerNodeType(
             {
                 //todo: replace with isMultipart flag
                 if(requestedMesh.primitives.length > 1){
-                    this._createBufferViews(gl);
+                    //this._createBufferViews(gl);
                     this._updateRenderDataForMultipart(shape, gl, requestedMesh);
                 }else {
                     this._updateRenderDataForPrimitive(shape, gl, requestedMesh.primitives[0]);
@@ -368,28 +375,78 @@ x3dom.registerNodeType(
             _downloadBuffers: function(callback){
 
                 var that = this;
+				var header = that.gltfHeader;
+				
                 that._bufferDownloadCompleteCallback = callback;
 
-                // create the list of buffers we want to download
-                for(bufferId in that.gltfHeader.buffers) {
-                    if (!that._bufferData[bufferId]) {
-                        var buffer = that.gltfHeader.buffers[bufferId];
-                        that._bufferData[bufferId] = {
-                            uri : this._nameSpace.getURL(buffer.uri),
-                            type : buffer.type,
-                            content : null,
-                            done : false
-                        };
-                    }
-                }
+				// First check whether or not there are 
+				// bufferviews attached for this mesh
+				that._bufferViews = [];
+				var bufferView;
 
-                // start the downloads
-                for(bufferId in that._bufferData) {
-                    var buffer = that._bufferData[bufferId];
-                    that._nameSpace.doc.manageDownload(buffer.uri, buffer.type, function(xhr) {
-                        that._onceDownloadedBuffer(xhr, buffer);
-                    });
-                }
+				for (var k in header.bufferViews)
+				{
+					if (header.bufferViews.hasOwnProperty(k))
+					{
+						bufferView = header.bufferViews[k];
+						
+						if (bufferView.extras.refID === that._DEF)
+						{
+							bufferView.key = k;
+							that._bufferViews.push(bufferView);
+						}
+					}
+				}
+				
+				if (that._bufferViews.length)
+				{
+					// If we have buffew views then load then singularly.
+					for (var bufferViewID in that._bufferViews)
+					{
+						if (that._bufferViews.hasOwnProperty(bufferViewID))
+						{
+							var bufferView = that._bufferViews[bufferViewID];
+							var buffer = that.gltfHeader.buffers[bufferView.buffer];
+							
+							var byteArray = [[bufferView.byteOffset, bufferView.byteOffset + bufferView.byteLength]];
+							
+							var bufferViewURI = that._nameSpace.getURL(buffer.uri) + "?bytes=" + JSON.stringify(byteArray);
+							
+							bufferView.uri     = bufferViewURI;
+							bufferView.type    = buffer.type;
+							bufferView.content = null;
+							bufferView.done    = false;
+											
+							that._nameSpace.doc.manageDownload(bufferView.uri, bufferView.type, function(bufferView) {
+								return function(xhr) {
+									that._onceDownloadedBuffer(xhr, bufferView);
+								}; 
+							}(bufferView));
+						}
+					}
+				} else {
+					// create the list of buffers we want to download
+					for(bufferId in that.gltfHeader.buffers) {
+						if (!that._bufferData[bufferId]) {
+							var buffer = that.gltfHeader.buffers[bufferId];
+							that._bufferData[bufferId] = {
+								uri : this._nameSpace.getURL(buffer.uri),
+								type : buffer.type,
+								content : null,
+								done : false
+							};
+						}
+					}
+
+					// start the downloads
+					for(bufferId in that._bufferData) {
+						var buffer = that._bufferData[bufferId];
+						
+						that._nameSpace.doc.manageDownload(buffer.uri, buffer.type, function(xhr) {
+							that._onceDownloadedBuffer(xhr, buffer);
+						});
+					}
+				}
             },
 
             _onceDownloadedBuffer: function(xhr, buffer){
@@ -399,21 +456,35 @@ x3dom.registerNodeType(
                 buffer.done = true;
                 if(xhr.status === 200 || xhr.status === 0)
                 {
-                    buffer.content = new Uint8Array(xhr.response, 0, xhr.byteLength);
+                    buffer.content = new Uint8Array(xhr.response);
                 }
 
                 var finished = true;
-                for(bufferId in that._bufferData)
-                {
-                    if(that._bufferData[bufferId].done != true){
-                        finished = false;
-                    }
-                }
-
+				
+				if (that._bufferViews.length)
+				{
+					for (var i = 0; i < that._bufferViews.length; i++)
+					{
+						if (that._bufferViews[i].done !== true)
+						{
+							finished = false;
+						}
+					}
+				} else {
+					for(bufferId in that._bufferData)
+					{
+						if(that._bufferData[bufferId].done !== true){
+							finished = false;
+						}
+					}
+				}
+				
                 if(finished)
                 {
                     that._bufferDownloadCompleteCallback();
                 }
+				
+				
             },
 
             /**
@@ -525,23 +596,39 @@ x3dom.registerNodeType(
 						totalBytes += buffers[i].byteLength;
 					}	
 				}
-									
-				var newGLBuffer = gl.createBuffer();
-				gl.bindBuffer(target, newGLBuffer);
-				gl.bufferData(target, totalBytes, gl.DYNAMIC_DRAW);
 				
-				//console.log(target + " TB: " + totalBytes);
-				
-				totalBytes = 0;
-				
-				for (i = 0; i < attrBuffers.length; i++)
-				{
-					gl.bufferSubData(target, totalBytes, new Uint8Array(attrBuffers[i]));
+				if (totalBytes)
+				{	
+					var newGLBuffer = gl.createBuffer();
+					gl.bindBuffer(target, newGLBuffer);
+					gl.bufferData(target, totalBytes, gl.STATIC_DRAW);
 					
-					objs[i].glBufferOffset = totalBytes;
-					objs[i].glBuffer       = newGLBuffer;
+					//console.log(target + " TB: " + totalBytes);
 					
-					totalBytes += attrBuffers[i].byteLength;
+					var oldBuffers = [];
+					
+					totalBytes = 0;
+					
+					for (i = 0; i < attrBuffers.length; i++)
+					{
+						if (attrBuffers[i].byteLength)
+						{
+							gl.bufferSubData(target, totalBytes, new Uint8Array(attrBuffers[i]));
+							
+							objs[i].glBufferOffset = totalBytes;
+							
+							oldBuffers.push(objs[i].glBuffer);
+							
+							objs[i].glBuffer       = newGLBuffer;
+							
+							totalBytes += attrBuffers[i].byteLength;
+						}
+					}
+					
+					for(var i = 0; i < oldBuffers.length; i++)
+					{
+						gl.deleteBuffer(oldBuffers[i]);
+					}
 				}
 			},
 
@@ -556,87 +643,107 @@ x3dom.registerNodeType(
                 var header = that.gltfHeader;
 				var i;
 				that.gl = gl;
-			
-				that.memoryManager = new Worker("public/js/external/multiThreadMemoryManager.js");
-				
-				that.memoryManager.onmessage = function(event) {
-					// Here we recreate the OpenGL buffers
-					
-					var ATTRIBUTE_TARGET = 34962;
-					var INDEX_TARGET     = 34963;
-					
-					var gl = that.gl;
-					var header = that.gltfHeader;
-					
-					that._multipart.indices = {
-						count: event.data.count
-					};
-					that._createGLBuffers(gl, header, event.data.keys, event.data.buffers, INDEX_TARGET, [that._multipart.indices]);
-					
-					var attributeObjects = [];
-					
-					for (i = 0; i < event.data.keys.length; i++)
-					{
-						var key = event.data.keys[i];
-						
-						for (var attrKey in that._multipart.attributes)
-						{
-							if (that._multipart.attributes.hasOwnProperty(attrKey))
-							{
-								var attribute = that._multipart.attributes[attrKey];
 							
-								if (attribute.bufferView === key)
+				that.addMemoryManagerCallback(function(event) {
+					
+					// Here we recreate the OpenGL buffers
+					if (that._DEF === event.data.destination)
+					{
+						if (event.data.type === "registered")
+						{
+							that.memoryManagerRegistered = true;
+						} else {
+
+							var ATTRIBUTE_TARGET = 34962;
+							var INDEX_TARGET     = 34963;
+							
+							var gl = that.gl;
+							var header = that.gltfHeader;
+							
+							that._multipart.indices = {
+								count: event.data.count
+							};
+							
+							that._createGLBuffers(gl, header, event.data.keys, event.data.buffers, INDEX_TARGET, [that._multipart.indices]);
+							
+							var attributeObjects = [];
+							
+							for (i = 0; i < event.data.keys.length; i++)
+							{
+								var key = event.data.keys[i];
+								
+								for (var attrKey in that._multipart.attributes)
 								{
-									attributeObjects.push(attribute);
-								}	
+									if (that._multipart.attributes.hasOwnProperty(attrKey))
+									{
+										var attribute = that._multipart.attributes[attrKey];
+									
+										if (attribute.bufferView === key)
+										{
+											attributeObjects.push(attribute);
+										}	
+									}
+								}
+							}
+							
+							that._createGLBuffers(gl, header, event.data.keys, event.data.buffers, ATTRIBUTE_TARGET, attributeObjects);	
+							
+							that.memoryManager.postMessage(
+								{
+									id: that._DEF,
+									type: "returnBuffers",
+									keys: event.data.keys,
+									buffers: event.data.buffers
+								}
+							);		
+							
+							that._rebindMultipart(that._multipart);
+						}
+					}	
+				});
+				
+				//debugger;
+				var myBuffers = [];
+						
+				if (!that._bufferViews)
+				{
+					var bufferView;
+					that._bufferViews = [];
+					
+					for (var k in header.bufferViews)
+					{
+						if (header.bufferViews.hasOwnProperty(k))
+						{
+							bufferView = header.bufferViews[k];
+							
+							if (bufferView.extras.refID === that._DEF)
+							{
+								bufferView.key = k;
+								that._bufferViews.push(bufferView);
 							}
 						}
 					}
 					
-					that._createGLBuffers(gl, header, event.data.keys, event.data.buffers, ATTRIBUTE_TARGET, attributeObjects);	
+					var fullBuffer = that._bufferData[that._DEF.substring(0, that._DEF.length-2)].content;
 					
-					this.postMessage(
-						{
-							type: "returnBuffers",
-							keys: event.data.keys,
-							buffers: event.data.buffers
-						}
-					);		
-					
-					that._rebindMultipart(that._multipart);	
-				};
-				
-				var myBufferViews = [], bufferView;
-				
-				for (var k in header.bufferViews)
-				{
-					if (header.bufferViews.hasOwnProperty(k))
+					for (var i = 0; i < that._bufferViews.length; i++)
 					{
-						bufferView = header.bufferViews[k];
-						
-						if (bufferView.extras.refID === that._DEF)
-						{
-							bufferView.key = k;
-							myBufferViews.push(bufferView);
-						}
+						bufferView = that._bufferViews[i];
+						myBuffers.push(fullBuffer.slice(bufferView.byteOffset, bufferView.byteOffset + bufferView.byteLength).buffer);
+					}
+				} else {
+					for (var i = 0; i < that._bufferViews.length; i++)
+					{
+						myBuffers.push(that._bufferViews[i].content.buffer);
 					}
 				}
 				
-				var fullBuffer = that._bufferData[that._DEF.substring(0, that._DEF.length-2)].content;
-				var myBuffers = [];
-				
-				for (var i = 0; i < myBufferViews.length; i++)
-				{
-					bufferView = myBufferViews[i];
-					myBuffers.push(fullBuffer.slice(bufferView.byteOffset, bufferView.byteOffset + bufferView.byteLength).buffer);
-				}
-
 				that.memoryManager.postMessage({
 					type: "registerMe",
 					id: that._DEF,
-					ops: 5,
+					ops: 10,
 					buffer: myBuffers,
-					bufferViews: myBufferViews,
+					bufferViews: that._bufferViews,
 					submeshes: that._createMultipartSubmeshes(requestedMesh)
 				},
 				myBuffers);
@@ -715,10 +822,11 @@ x3dom.registerNodeType(
 			
 			if (changed)
 			{
-				if (this.memoryManager)
+				if (this.memoryManagerRegistered)
 				{
 					this.memoryManager.postMessage(
 						{
+							id: this._DEF,
 							type: "changeVisibility",
 							ids: IDs
 						}

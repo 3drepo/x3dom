@@ -12,19 +12,16 @@
 var msPerFrame = 100000.0;
 
 var tickStart = null;
-var returned = true;
+var returned = {};
+var needPush = {};
 
-var primitiveCount = 0;
+var meshesCounters = {};
 
-var maxIndex = 0;
+var meshesMemory = {};
 
-var memory = {
-	submeshes : {}
-};
-
-var visibilityMap = {};
-var removeQueue = [];
-var addQueue    = [];
+var meshesVisibilityMap = {};
+var meshesRemoveQueue = {};
+var meshesAddQueue    = {};
 
 /*
 function resultReceiver(event) {
@@ -48,10 +45,27 @@ onmessage = function(event) {
 	// memory to be held here. Along with a description
 	// of how the sub-meshes constitute it. 
 	
-	var i;
+	var i, memory = meshesMemory[event.data.id];
+	var removeQueue = meshesRemoveQueue[event.data.id];
+	var addQueue = meshesAddQueue[event.data.id];
+	var visibilityMap = meshesVisibilityMap[event.data.id];
 	
 	if (event.data.type === "registerMe")
 	{
+		meshesMemory[event.data.id] = {};
+		meshesRemoveQueue[event.data.id] = [];
+		meshesAddQueue[event.data.id] = [];
+		meshesCounters[event.data.id] = { primitiveCount: 0, maxIndex: 0 };
+		meshesVisibilityMap[event.data.id] = {};
+		
+		returned[event.data.id] = true;
+		needPush[event.data.id] = true;
+		
+		addQueue = meshesAddQueue[event.data.id];
+		removeQueue = meshesRemoveQueue[event.data.id];		
+		memory = meshesMemory[event.data.id];
+		visibilityMap = meshesVisibilityMap[event.data.id];
+		
 		memory.data = event.data;
 		
 		// Create buffers spaces that are ready to upload to the GPU
@@ -65,6 +79,9 @@ onmessage = function(event) {
 		
 		// Build up a map from the ID of the submesh to 
 		// information about it's segmentation
+		
+		memory.submeshes = {};
+		
 		for(i = 0; i < event.data.submeshes.length; i++)
 		{
 			var submesh = event.data.submeshes[i];
@@ -75,7 +92,7 @@ onmessage = function(event) {
 			memory.submeshes[submesh.primitive.extras.refID].endIndex = -1;
 			
 			// Add everything to queue to be displayed as quickly as possible.
-			addQueue.push(submesh.primitive.extras.refID);
+			//addQueue.push(submesh.primitive.extras.refID);
 			
 			// Everything starts off invisible
 			visibilityMap[submesh.primitive.extras.refID] = false;
@@ -83,12 +100,19 @@ onmessage = function(event) {
 		
 		msPerFrame = 1000.0 / event.data.ops;
 		
+		postMessage({
+			type: "registered",
+			destination: event.data.id
+		});
+		
 	} else if (event.data.type === "changeVisibility") {
 		// Pass in a list of IDs that need to be switched off
 		// and switch on. Create a queue here to work through
 		// based on a sorting mechanism.
 		
 		var subMeshID;
+
+		//debugger;
 		
 		for (subMeshID in memory.submeshes)
 		{
@@ -103,9 +127,7 @@ onmessage = function(event) {
 					if (removeQueueIDX > -1)
 					{
 						removeQueue.splice(removeQueueIDX, 1);
-					}
-					
-					if (!visibilityMap[subMeshID])
+					} else if (!visibilityMap[subMeshID])
 					{
 						if (addQueue.indexOf(subMeshID) === -1)
 						{
@@ -118,10 +140,7 @@ onmessage = function(event) {
 					if (addQueueIDX > -1)
 					{
 						addQueue.splice(addQueueIDX, 1);
-					}
-					
-					if (visibilityMap[subMeshID])
-					{
+					} else if (visibilityMap[subMeshID]) {
 						if (removeQueue.indexOf(subMeshID) === -1)
 						{
 							removeQueue.push(subMeshID);
@@ -131,6 +150,8 @@ onmessage = function(event) {
 			}
 		}
 		
+		//debugger;
+		
 	} else if (event.data.type === "returnBuffers") {
 		for (i = 0; i < event.data.keys.length; i++)
 		{
@@ -138,221 +159,293 @@ onmessage = function(event) {
 			memory.constructedBuffers[key] = event.data.buffers[i];
 		}
 		
-		returned = true;
+		returned[event.data.id] = true;
 	}
 	
 	
 };
 
-function _returnBuffers() {
+function _returnBuffers(mesh, memory, counter, force) {
 	"use strict";
+					
+	var elapsedTime = (new Date().getTime()) - tickStart;
 	
-	if (!tickStart)
+	if (force || (elapsedTime > msPerFrame))
 	{
-		tickStart = new Date().getTime();
-	} else {				
-		var elapsedTime = (new Date().getTime()) - tickStart;
+		var returnBuffers = [];
 		
-		if ((elapsedTime > msPerFrame) || !addQueue.length)
+		for (var k in memory.constructedBuffers)
 		{
-			var returnBuffers = [];
-			
-			for (var k in memory.constructedBuffers)
+			if (memory.constructedBuffers.hasOwnProperty(k))
 			{
-				if (memory.constructedBuffers.hasOwnProperty(k))
-				{
-					returnBuffers.push(memory.constructedBuffers[k]);
-				}
+				returnBuffers.push(memory.constructedBuffers[k]);
 			}
+		}
 
-			postMessage(
-				{
-					type: "bufferReady",
-					keys: Object.keys(memory.constructedBuffers),
-					buffers: returnBuffers,
-					count: primitiveCount
-				},
-			returnBuffers);
-			
-			returned = false;
-			tickStart = null;
-		} 
+		postMessage(
+			{
+				destination: mesh,
+				type: "bufferReady",
+				keys: Object.keys(memory.constructedBuffers),
+				buffers: returnBuffers,
+				count: counter.primitiveCount
+			},
+		returnBuffers);
+		
+		returned[mesh] = false;
+		needPush[mesh] = false;
+		 
+		tickStart = null;
+	} 
+}
+
+function _computeBuffers(ctx, memory, submesh, segmentName) {
+	"use strict";
+	"use asm";
+	
+	ctx.indexBuffer = !submesh.segments.hasOwnProperty(segmentName);
+	
+	if (!ctx.indexBuffer)
+	{	
+		ctx.segmentLength = submesh.segments[segmentName].lengthBytes;	
+	} else {
+		ctx.segmentLength = submesh.indices.lengthBytes;
+	}	
+				
+	ctx.segmentStart = submesh.constructedBufferOffsets[segmentName];
+	ctx.segmentEnd   = ctx.segmentStart + ctx.segmentLength;
+
+	ctx.oldBuffer       = memory.constructedBuffers[segmentName];
+	ctx.oldLength       = ctx.oldBuffer.byteLength;
+	ctx.oldBufferObject = new Uint8Array(ctx.oldBuffer, 0, ctx.oldLength);
+	
+	ctx.newLength       = ctx.oldLength - ctx.segmentLength;
+	ctx.newBuffer       = new ArrayBuffer(ctx.newLength);
+	ctx.newBufferObject = new Uint8Array(ctx.newBuffer, 0, ctx.newLength);
+	
+	ctx.preBuffer       = ctx.oldBufferObject.slice(0, ctx.segmentStart);
+	ctx.postBuffer      = ctx.oldBufferObject.slice(ctx.segmentEnd);	
+}
+
+function _performReindexing(ctx, counter, submesh)
+{
+	"use strict";
+	"use asm";
+	
+	var indexDelta = (submesh.endIndex - submesh.startIndex) + 1;
+	counter.maxIndex = counter.maxIndex - indexDelta;
+	
+	var indexData = new Uint16Array(ctx.postBuffer.buffer);
+	
+	for (var j = 0; j < indexData.length; j++)
+	{
+		var newIndex = indexData[j] - indexDelta;
+		indexData[j] = newIndex;
+	}
+	
+	submesh.startIndex = -1;
+	submesh.endIndex   = -1;
+	
+	counter.primitiveCount -= submesh.indices.count;
+}
+
+function _adjustOffsets(ctx, memory, segmentName)
+{
+	"use strict";
+	"use asm";
+	
+	// Adjust other submesh offsets
+	for (var subMeshID in memory.submeshes)
+	{
+		var otherSubMesh = memory.submeshes[subMeshID];
+	
+		if ("undefined" !== typeof otherSubMesh.constructedBufferOffsets[segmentName])
+		{
+			if(otherSubMesh.constructedBufferOffsets[segmentName] > ctx.segmentStart) 
+			{
+				otherSubMesh.constructedBufferOffsets[segmentName] -= ctx.segmentLength;
+			}
+		}
 	}
 }
 
-function processQueue() {
+function _constructNewBufferObject(ctx, memory, submesh, segmentName)
+{
 	"use strict";
+	"use asm";
+	
+	ctx.newBufferObject.set(ctx.preBuffer, 0);
+	ctx.newBufferObject.set(ctx.postBuffer, ctx.segmentStart);	
+	
+	submesh.constructedBufferOffsets[segmentName] = -1;
+	memory.constructedBuffers[segmentName] = ctx.newBuffer;					
+}
+
+function _addQueueComputeCTX(ctx, i, memory, counter, submesh, segmentName) {
+	"use strict";
+	"use asm";
+	
+	ctx.indexBuffer = !submesh.segments.hasOwnProperty(segmentName);
+	
+	if (!ctx.indexBuffer)
+	{			
+		ctx.segmentLength = submesh.segments[segmentName].lengthBytes;
+		ctx.segmentStart  = submesh.segments[segmentName].startBytes;
+		ctx.segmentEnd    = submesh.segments[segmentName].endBytes;
+	} else {
+		ctx.segmentLength = submesh.indices.lengthBytes;
+		ctx.segmentStart  = submesh.indices.startBytes;
+		ctx.segmentEnd    = submesh.indices.endBytes;	
+		
+		counter.primitiveCount += submesh.indices.count;
+	}
+
+	ctx.oldLength       = memory.constructedBuffers[segmentName].byteLength;
+	ctx.oldBuffer       = memory.constructedBuffers[segmentName];
+	ctx.oldBufferObject = new Uint8Array(ctx.oldBuffer, 0, ctx.oldLength);
+	
+	ctx.newLength       = ctx.oldLength + ctx.segmentLength;
+	ctx.newBuffer       = new ArrayBuffer(ctx.newLength);
+	ctx.newBufferObject = new Uint8Array(ctx.newBuffer, 0, ctx.newLength);
+	
+	ctx.srcBufferLength = memory.data.bufferViews[i].byteLength; 
+	ctx.srcBuffer       = memory.data.buffer[i];
+	ctx.srcBufferObject = new Uint8Array(ctx.srcBuffer, 0, ctx.srcBufferLength);
+
+	// Construct new resized buffer
+	ctx.newBufferObject.set(ctx.oldBufferObject, 0);
+	
+	// Copy the information for the segment to the newBuffer
+	ctx.segmentData = ctx.srcBufferObject.subarray(ctx.segmentStart, ctx.segmentEnd);	
+}
+	
+function _addQueuePerformReindexing(ctx, memory, counter, submesh, segmentName)
+{
+	"use strict";
+	"use asm";
+	
+	var newMaxIndex = counter.maxIndex;
+	var indexData = new Uint16Array(ctx.newBufferObject.buffer, ctx.oldLength, ctx.segmentLength / 2);
+
+	submesh.startIndex = counter.maxIndex;
+					
+	for(var j = 0; j < indexData.length; j++)
+	{
+		var newIndex = indexData[j] + counter.maxIndex;
+		newMaxIndex = (newIndex > newMaxIndex) ? newIndex : newMaxIndex;
+		indexData[j] = newIndex;
+	}
+
+	submesh.endIndex = newMaxIndex;
+	counter.maxIndex = newMaxIndex + 1;
+}
+
+function processQueue() {
+	"use asm";
 	
 	var profileStart = null;
 	
-	if (returned)
-	{
-		// First deal with removing objects from buffer
-		while(returned && removeQueue.length)
+	for (var mesh in meshesMemory)
+	{	
+		if (returned[mesh])
 		{
-			_returnBuffers();
-
-			var first = removeQueue.shift();
-			var submesh = memory.submeshes[first];
-			var segmentNames = Object.keys(memory.constructedBuffers);
-			
-			var indexBuffer;
-			
-			// Now visible
-			visibilityMap[first] = false;
-			
-			// Cut submesh out of buffer
-			for (var i = 0; i < segmentNames.length; i++)
-			{
-				var segmentName = segmentNames[i];
-				var segmentLength, segmentStart, segmentEnd;
-				
-				indexBuffer = !submesh.segments.hasOwnProperty(segmentName);
-				
-				if (!indexBuffer)
-				{	
-					segmentLength = submesh.segments[segmentName].lengthBytes;	
-				} else {
-					segmentLength = submesh.indices.lengthBytes;
-				}	
-							
-				segmentStart = submesh.constructedBufferOffsets[segmentName];
-				segmentEnd   = segmentStart + segmentLength;
-
-				var oldBuffer       = memory.constructedBuffers[segmentName];
-				var oldLength       = oldBuffer.byteLength;
-				var oldBufferObject = new Uint8Array(oldBuffer, 0, oldLength);
-				
-				var newLength       = oldLength - segmentLength;
-				var newBuffer       = new ArrayBuffer(newLength);
-				var newBufferObject = new Uint8Array(newBuffer, 0, newLength);
-				
-				var preBuffer       = oldBufferObject.slice(0, segmentStart);
-				var postBuffer      = oldBufferObject.slice(segmentEnd);	
-				
-				// Must re-index everything
-				if (indexBuffer)
-				{
-					var indexDelta = (submesh.endIndex - submesh.startIndex) + 1;
-					maxIndex = maxIndex - indexDelta;
-					
-					var indexData = new Uint16Array(postBuffer.buffer);
-					
-					for (var j = 0; j < indexData.length; j++)
-					{
-						var newIndex = indexData[j] - indexDelta;
-						indexData[j] = newIndex;
-					}
-					
-					submesh.startIndex = -1;
-					submesh.endIndex   = -1;
-					
-					primitiveCount -= submesh.indices.count;
-				}
-				
-				// Adjust other submesh offsets
-				for (var subMeshID in memory.submeshes)
-				{
-					var otherSubMesh = memory.submeshes[subMeshID];
-				
-					if ('undefined' !== typeof otherSubMesh.constructedBufferOffsets[segmentName])
-					{
-						if(otherSubMesh.constructedBufferOffsets[segmentName] > segmentStart) 
-						{
-							otherSubMesh.constructedBufferOffsets[segmentName] -= segmentLength;
-						}
-					}
-				}
-				
-				newBufferObject.set(preBuffer, 0);
-				newBufferObject.set(postBuffer, segmentStart);
-				
-				submesh.constructedBufferOffsets[segmentName] = -1;
-				memory.constructedBuffers[segmentName] = newBuffer;			
-			}
-			
-			_returnBuffers();
-		}
+			var memory      = meshesMemory[mesh];
+			var removeQueue = meshesRemoveQueue[mesh];
+			var addQueue    = meshesAddQueue[mesh];
+			var counter     = meshesCounters[mesh];
+			var visibilityMap = meshesVisibilityMap[mesh];
 		
-		// Next, deal with adding object to buffer
-		while(returned && addQueue.length)
-		{
-			_returnBuffers();
-					
-			var first = addQueue.shift();
-			var submesh = memory.submeshes[first];
-			var segmentNames = Object.keys(memory.constructedBuffers);
-			
-			var indexBuffer;
-			
-			// Now visible
-			visibilityMap[first] = true;
-			
-			for (var i = 0; i < segmentNames.length; i++)
+			needPush[mesh]  = true; 
+		
+			if (addQueue.length || removeQueue.length)
 			{
-				var segmentName = segmentNames[i];
-				
-				var segmentLength, segmentStart, segmentEnd;
-				
-				indexBuffer = !submesh.segments.hasOwnProperty(segmentName);
-				
-				if (!indexBuffer)
-				{			
-					segmentLength = submesh.segments[segmentName].lengthBytes;
-					segmentStart  = submesh.segments[segmentName].startBytes;
-					segmentEnd    = submesh.segments[segmentName].endBytes;
-				} else {
-					segmentLength = submesh.indices.lengthBytes;
-					segmentStart  = submesh.indices.startBytes;
-					segmentEnd    = submesh.indices.endBytes;	
-					
-					primitiveCount += submesh.indices.count;
+				console.log("MESH: " + mesh + " AQ: " + addQueue.length + " RQ: " + removeQueue.length);	
+			}
+		
+			// First deal with removing objects from buffer
+			while(returned[mesh] && removeQueue.length)
+			{
+				if (!tickStart)
+				{
+					tickStart = new Date().getTime();
 				}
 				
-				
-				var oldLength       = memory.constructedBuffers[segmentName].byteLength;
-				var oldBuffer       = memory.constructedBuffers[segmentName];
-				var oldBufferObject = new Uint8Array(oldBuffer, 0, oldLength);
-				
-				var newLength       = oldLength + segmentLength;
-				var newBuffer       = new ArrayBuffer(newLength);
-				var newBufferObject = new Uint8Array(newBuffer, 0, newLength);
-				
-				var srcBufferLength = memory.data.bufferViews[i].byteLength; 
-				var srcBuffer       = memory.data.buffer[i];
-				var srcBufferObject = new Uint8Array(srcBuffer, 0, srcBufferLength);
-				
-				// Construct new resized buffer
-				newBufferObject.set(oldBufferObject, 0);
-				
-				// Copy the information for the segment to the newBuffer
-				var segmentData = srcBufferObject.slice(segmentStart, segmentEnd);
-				
-				if (indexBuffer)
-				{
-					var newMaxIndex = maxIndex;
-					var indexData = new Uint16Array(segmentData.buffer);
+				needPush[mesh] = true;
 					
-					submesh.startIndex = maxIndex;
-										
-					for(var j = 0; j < indexData.length; j++)
+				var first = removeQueue.shift();
+				var submesh = memory.submeshes[first];
+				var segmentNames = Object.keys(memory.constructedBuffers);
+				
+				// Now visible
+				visibilityMap[first] = false;
+				
+				// Cut submesh out of buffer
+				for (var i = 0; i < segmentNames.length; i++)
+				{
+					var segmentName = segmentNames[i];
+					var ctx = {};
+
+					_computeBuffers(ctx, memory, submesh, segmentName);
+					
+					// Must re-index everything
+					if (ctx.indexBuffer)
 					{
-						var newIndex = indexData[j] + maxIndex;
-						newMaxIndex = (newIndex > newMaxIndex) ? newIndex : newMaxIndex;
-						indexData[j] = newIndex;
+						_performReindexing(ctx, counter, submesh);
 					}
 					
-					submesh.endIndex = newMaxIndex;
-					maxIndex = newMaxIndex + 1;
+					_adjustOffsets(ctx, memory, segmentName);
+					
+					_constructNewBufferObject(ctx, memory, submesh, segmentName);	
 				}
 				
-				// Store to remove later
-				submesh.constructedBufferOffsets[segmentName] = oldLength;
-				newBufferObject.set(segmentData, oldLength);
-				memory.constructedBuffers[segmentName] = newBuffer;
+				_returnBuffers(mesh, memory, counter, false);
 			}
 			
-			_returnBuffers();			
+			// Next, deal with adding object to buffer
+			while(returned[mesh] && addQueue.length)
+			{
+				if (!tickStart)
+				{
+					tickStart = new Date().getTime();
+				}
+				
+				needPush[mesh] = true;
+				
+				var first = addQueue.shift();
+				var submesh = memory.submeshes[first];
+				var segmentNames = Object.keys(memory.constructedBuffers);
+				
+				// Now visible
+				visibilityMap[first] = true;
+				
+				for (var i = 0; i < segmentNames.length; i++)
+				{
+					var segmentName = segmentNames[i];					
+					var ctx = {};
+					
+					_addQueueComputeCTX(ctx, i, memory, counter, submesh, segmentName);
+					
+					// Copy the data to the newBufferObject
+					ctx.newBufferObject.set(ctx.segmentData, ctx.oldLength);
+										
+					if (ctx.indexBuffer)
+					{
+						_addQueuePerformReindexing(ctx, memory, counter, submesh, segmentName);
+					}
+								
+					// Store to remove later
+					submesh.constructedBufferOffsets[segmentName] = ctx.oldLength;
+					memory.constructedBuffers[segmentName] = ctx.newBuffer;	
+				}
+				
+				_returnBuffers(mesh, memory, counter, false);			
+			}
+			
+			// Push any remaining changes that may have
+			if (needPush[mesh] && returned[mesh])
+			{
+				_returnBuffers(mesh, memory, counter, true);
+			}
 		}
 	}
 	

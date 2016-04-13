@@ -43,6 +43,36 @@ x3dom.registerNodeType(
 			this.partitioning = undefined;
 			
 			this.geometryNodes = [];
+			
+			this.memoryManager = [];
+			this.memoryManagerCallback = [];
+			this.addMemoryManagerCallback = [];
+				
+			var that = this;
+			
+			that.N_THREADS = 3;
+			
+			for (var n = 0;n < that.N_THREADS; n++)
+			{
+				this.memoryManager[n] = new Worker("public/js/external/multiThreadMemoryManager.js");
+				this.memoryManagerCallback[n] = [];
+							
+				this.addMemoryManagerCallback.push((function(n) {
+					return function (callback)
+					{
+						that.memoryManagerCallback[n].push(callback);
+					};
+				})(n));
+			
+				this.memoryManager[n].onmessage = (function(n) {
+					return function(event) {
+						for (var i = 0; i < that.memoryManagerCallback[n].length; i++)
+						{
+							that.memoryManagerCallback[n][i](event);
+						}
+					};
+				})(n);
+			}
         },
         {
             nodeChanged: function ()
@@ -254,9 +284,11 @@ x3dom.registerNodeType(
 
                 // add any meshes of this node as as new glTFGeometry nodes
                 if(gltfNode.meshes) {
-                    gltfNode.meshes.forEach(function(mesh) {
-                        newNode.appendChild(that._createShapeNode(sceneDoc, mesh, context));
-                    });
+					for(var i = 0; i < gltfNode.meshes.length; i++)
+					{
+						var mmIDX = i % that.N_THREADS;
+                        newNode.appendChild(that._createShapeNode(sceneDoc, gltfNode.meshes[i], context, mmIDX));
+                    }
                 }
 
                 // finally process all the children
@@ -273,7 +305,7 @@ x3dom.registerNodeType(
              * Creates a new X3DShape node, with the geometry and appearance elements initialised to new glTFGeometry and
              * Appearance nodes.
              */
-            _createShapeNode: function(sceneDoc, meshname, context){
+            _createShapeNode: function(sceneDoc, meshname, context, mmIDX){
 
                 var that    = this;
                 var header  = this._gltf._header;
@@ -290,6 +322,8 @@ x3dom.registerNodeType(
                 //because the dom is being passed directly (not being encoded and parsed) we can pass objects
                 geometryNode.gltfHeader = header;
                 geometryNode.gltfHeaderBaseURI = that._path;
+				geometryNode.addMemoryManagerCallback = that.addMemoryManagerCallback[mmIDX];
+				geometryNode.memoryManager = that.memoryManager[mmIDX];
 
                 shapeNode.appendChild(geometryNode);
 				
