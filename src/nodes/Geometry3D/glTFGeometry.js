@@ -578,13 +578,14 @@ x3dom.registerNodeType(
             // GLTF MULTIPART FUNCTIONALITY
             //----------------------------------------------------------------------------------------------------------
 
-			_createGLBuffers: function(gl, header, attrKeys, buffers, target, objs)
+			_createGLBuffers: function(gl, header, attrKeys, buffers, lengths, target, objs)
 			{
 				"use strict";
 			
 				// Create index buffer
 				var totalBytes = 0;
 				var attrBuffers = [];
+				var attrLengths = [];
 				
 				for (i = 0; i < attrKeys.length; i++)
 				{
@@ -593,7 +594,8 @@ x3dom.registerNodeType(
 					if (header.bufferViews[key].target === target)
 					{
 						attrBuffers.push(buffers[i]);
-						totalBytes += buffers[i].byteLength;
+						attrLengths.push(lengths[key]);
+						totalBytes += lengths[key];
 					}	
 				}
 				
@@ -613,7 +615,7 @@ x3dom.registerNodeType(
 					{
 						if (attrBuffers[i].byteLength)
 						{
-							gl.bufferSubData(target, totalBytes, new Uint8Array(attrBuffers[i]));
+							gl.bufferSubData(target, totalBytes, new Uint8Array(attrBuffers[i], 0, attrLengths[i]));
 							
 							objs[i].glBufferOffset = totalBytes;
 							
@@ -621,7 +623,7 @@ x3dom.registerNodeType(
 							
 							objs[i].glBuffer       = newGLBuffer;
 							
-							totalBytes += attrBuffers[i].byteLength;
+							totalBytes += attrLengths[i];
 						}
 					}
 					
@@ -664,7 +666,7 @@ x3dom.registerNodeType(
 								count: event.data.count
 							};
 							
-							that._createGLBuffers(gl, header, event.data.keys, event.data.buffers, INDEX_TARGET, [that._multipart.indices]);
+							that._createGLBuffers(gl, header, event.data.keys, event.data.buffers, event.data.lengths, INDEX_TARGET, [that._multipart.indices]);
 							
 							var attributeObjects = [];
 							
@@ -686,14 +688,15 @@ x3dom.registerNodeType(
 								}
 							}
 							
-							that._createGLBuffers(gl, header, event.data.keys, event.data.buffers, ATTRIBUTE_TARGET, attributeObjects);	
+							that._createGLBuffers(gl, header, event.data.keys, event.data.buffers, event.data.lengths, ATTRIBUTE_TARGET, attributeObjects);	
 							
 							that.memoryManager.postMessage(
 								{
 									id: that._DEF,
 									type: "returnBuffers",
 									keys: event.data.keys,
-									buffers: event.data.buffers
+									buffers: event.data.buffers,
+									lengths: event.data.lengths
 								}
 							);		
 							
@@ -741,7 +744,7 @@ x3dom.registerNodeType(
 				that.memoryManager.postMessage({
 					type: "registerMe",
 					id: that._DEF,
-					ops: 10,
+					ops: 2,
 					buffer: myBuffers,
 					bufferViews: that._bufferViews,
 					submeshes: that._createMultipartSubmeshes(requestedMesh)

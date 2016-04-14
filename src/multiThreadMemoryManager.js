@@ -23,21 +23,6 @@ var meshesVisibilityMap = {};
 var meshesRemoveQueue = {};
 var meshesAddQueue    = {};
 
-/*
-function resultReceiver(event) {
-	results.push(parseInt(event.data));
-	if (results.length == 2) {
-		postMessage(results[0] + results[1]);
-	}
-}
-*/
-
-// This function takes a block 
-function compact(blockID)
-{
-	
-}
-
 onmessage = function(event) {
 	"use strict";
 	
@@ -70,11 +55,20 @@ onmessage = function(event) {
 		
 		// Create buffers spaces that are ready to upload to the GPU
 		memory.constructedBuffers = {};
+		memory.constructedBuffersLength = {};
 		
 		for (i = 0; i < event.data.bufferViews.length; i++)
 		{
 			var key = event.data.bufferViews[i].key;
-			memory.constructedBuffers[key] = new ArrayBuffer();
+			var length = event.data.bufferViews[i].byteLength;
+			
+			memory.constructedBuffers[key] = new ArrayBuffer(length);
+			var newObject = new Uint8Array(memory.constructedBuffers[key]);
+			var srcObject = new Uint8Array(event.data.buffer[i]);
+			
+			newObject.set(srcObject);
+			
+			memory.constructedBuffersLength[key] = 0;
 		}
 		
 		// Build up a map from the ID of the submesh to 
@@ -88,8 +82,7 @@ onmessage = function(event) {
 			
 			memory.submeshes[submesh.primitive.extras.refID] = submesh;
 			memory.submeshes[submesh.primitive.extras.refID].constructedBufferOffsets = {};
-			memory.submeshes[submesh.primitive.extras.refID].startIndex = -1;
-			memory.submeshes[submesh.primitive.extras.refID].endIndex = -1;
+			memory.submeshes[submesh.primitive.extras.refID].numIndex = 0;
 			
 			// Add everything to queue to be displayed as quickly as possible.
 			//addQueue.push(submesh.primitive.extras.refID);
@@ -116,35 +109,31 @@ onmessage = function(event) {
 		
 		for (subMeshID in memory.submeshes)
 		{
-			if (memory.submeshes.hasOwnProperty(subMeshID))
+			var visible = (event.data.ids.indexOf(subMeshID) > -1);
+			
+			if (visible)
 			{
-				var visible = (event.data.ids.indexOf(subMeshID) > -1);
+				var removeQueueIDX = removeQueue.indexOf(subMeshID);
 				
-				if (visible)
+				if (removeQueueIDX > -1)
 				{
-					var removeQueueIDX = removeQueue.indexOf(subMeshID);
-					
-					if (removeQueueIDX > -1)
+					removeQueue.splice(removeQueueIDX, 1);
+				} else if (!visibilityMap[subMeshID]) {
+					if (addQueue.indexOf(subMeshID) === -1)
 					{
-						removeQueue.splice(removeQueueIDX, 1);
-					} else if (!visibilityMap[subMeshID])
-					{
-						if (addQueue.indexOf(subMeshID) === -1)
-						{
-							addQueue.push(subMeshID);
-						}
+						addQueue.push(subMeshID);
 					}
-				} else {
-					var addQueueIDX = addQueue.indexOf(subMeshID);
-					
-					if (addQueueIDX > -1)
+				}
+			} else {
+				var addQueueIDX = addQueue.indexOf(subMeshID);
+				
+				if (addQueueIDX > -1)
+				{
+					addQueue.splice(addQueueIDX, 1);
+				} else if (visibilityMap[subMeshID]) {
+					if (removeQueue.indexOf(subMeshID) === -1)
 					{
-						addQueue.splice(addQueueIDX, 1);
-					} else if (visibilityMap[subMeshID]) {
-						if (removeQueue.indexOf(subMeshID) === -1)
-						{
-							removeQueue.push(subMeshID);
-						}
+						removeQueue.push(subMeshID);
 					}
 				}
 			}
@@ -157,6 +146,7 @@ onmessage = function(event) {
 		{
 			var key = event.data.keys[i];
 			memory.constructedBuffers[key] = event.data.buffers[i];
+			memory.constructedBuffersLength[key] = event.data.lengths[key];
 		}
 		
 		returned[event.data.id] = true;
@@ -187,6 +177,7 @@ function _returnBuffers(mesh, memory, counter, force) {
 				destination: mesh,
 				type: "bufferReady",
 				keys: Object.keys(memory.constructedBuffers),
+				lengths: memory.constructedBuffersLength,
 				buffers: returnBuffers,
 				count: counter.primitiveCount
 			},
@@ -216,15 +207,21 @@ function _computeBuffers(ctx, memory, submesh, segmentName) {
 	ctx.segmentEnd   = ctx.segmentStart + ctx.segmentLength;
 
 	ctx.oldBuffer       = memory.constructedBuffers[segmentName];
-	ctx.oldLength       = ctx.oldBuffer.byteLength;
-	ctx.oldBufferObject = new Uint8Array(ctx.oldBuffer, 0, ctx.oldLength);
-	
+	ctx.oldLength       = memory.constructedBuffersLength[segmentName];
+	ctx.oldBufferObject = new Uint8Array(ctx.oldBuffer);
+
+/*	
 	ctx.newLength       = ctx.oldLength - ctx.segmentLength;
 	ctx.newBuffer       = new ArrayBuffer(ctx.newLength);
 	ctx.newBufferObject = new Uint8Array(ctx.newBuffer, 0, ctx.newLength);
+*/	
+
+	memory.constructedBuffersLength[segmentName] -= ctx.segmentLength;
 	
-	ctx.preBuffer       = ctx.oldBufferObject.slice(0, ctx.segmentStart);
-	ctx.postBuffer      = ctx.oldBufferObject.slice(ctx.segmentEnd);	
+	ctx.preBuffer       = ctx.oldBufferObject.subarray(0, ctx.segmentStart);
+	ctx.postBuffer      = ctx.oldBufferObject.subarray(ctx.segmentEnd);	
+	
+	ctx.newBufferObject = ctx.oldBufferObject;
 }
 
 function _performReindexing(ctx, counter, submesh)
@@ -232,20 +229,18 @@ function _performReindexing(ctx, counter, submesh)
 	"use strict";
 	"use asm";
 	
-	var indexDelta = (submesh.endIndex - submesh.startIndex) + 1;
+	var indexDelta = submesh.numIndex;
 	counter.maxIndex = counter.maxIndex - indexDelta;
 	
-	var indexData = new Uint16Array(ctx.postBuffer.buffer);
+	var indexData = new Uint16Array(ctx.postBuffer.buffer, ctx.segmentEnd);
+	
+	//debugger;
 	
 	for (var j = 0; j < indexData.length; j++)
 	{
-		var newIndex = indexData[j] - indexDelta;
-		indexData[j] = newIndex;
+		indexData[j] -= indexDelta;
 	}
-	
-	submesh.startIndex = -1;
-	submesh.endIndex   = -1;
-	
+		
 	counter.primitiveCount -= submesh.indices.count;
 }
 
@@ -274,11 +269,11 @@ function _constructNewBufferObject(ctx, memory, submesh, segmentName)
 	"use strict";
 	"use asm";
 	
-	ctx.newBufferObject.set(ctx.preBuffer, 0);
+	//ctx.newBufferObject.set(ctx.preBuffer, 0);
 	ctx.newBufferObject.set(ctx.postBuffer, ctx.segmentStart);	
 	
 	submesh.constructedBufferOffsets[segmentName] = -1;
-	memory.constructedBuffers[segmentName] = ctx.newBuffer;					
+	//memory.constructedBuffers[segmentName] = ctx.newBuffer;					
 }
 
 function _addQueueComputeCTX(ctx, i, memory, counter, submesh, segmentName) {
@@ -300,20 +295,26 @@ function _addQueueComputeCTX(ctx, i, memory, counter, submesh, segmentName) {
 		counter.primitiveCount += submesh.indices.count;
 	}
 
-	ctx.oldLength       = memory.constructedBuffers[segmentName].byteLength;
+	ctx.oldLength       = memory.constructedBuffersLength[segmentName];
 	ctx.oldBuffer       = memory.constructedBuffers[segmentName];
-	ctx.oldBufferObject = new Uint8Array(ctx.oldBuffer, 0, ctx.oldLength);
+	ctx.oldBufferObject = new Uint8Array(ctx.oldBuffer);
 	
+	/*
 	ctx.newLength       = ctx.oldLength + ctx.segmentLength;
 	ctx.newBuffer       = new ArrayBuffer(ctx.newLength);
 	ctx.newBufferObject = new Uint8Array(ctx.newBuffer, 0, ctx.newLength);
+	*/
 	
+	memory.constructedBuffersLength[segmentName] += ctx.segmentLength;
+
 	ctx.srcBufferLength = memory.data.bufferViews[i].byteLength; 
 	ctx.srcBuffer       = memory.data.buffer[i];
 	ctx.srcBufferObject = new Uint8Array(ctx.srcBuffer, 0, ctx.srcBufferLength);
 
 	// Construct new resized buffer
-	ctx.newBufferObject.set(ctx.oldBufferObject, 0);
+	//ctx.newBufferObject.set(ctx.oldBufferObject, 0);
+	ctx.newBufferObject = ctx.oldBufferObject;
+	//memory.constructedBuffers[segmentName].byteLength;
 	
 	// Copy the information for the segment to the newBuffer
 	ctx.segmentData = ctx.srcBufferObject.subarray(ctx.segmentStart, ctx.segmentEnd);	
@@ -324,27 +325,26 @@ function _addQueuePerformReindexing(ctx, memory, counter, submesh, segmentName)
 	"use strict";
 	"use asm";
 	
-	var newMaxIndex = counter.maxIndex;
+	//var newMaxIndex = counter.maxIndex;
 	var indexData = new Uint16Array(ctx.newBufferObject.buffer, ctx.oldLength, ctx.segmentLength / 2);
 
-	submesh.startIndex = counter.maxIndex;
+	//submesh.startIndex = counter.maxIndex;
+	submesh.numIndex = submesh.indices.max + 1;
 					
 	for(var j = 0; j < indexData.length; j++)
 	{
-		var newIndex = indexData[j] + counter.maxIndex;
-		newMaxIndex = (newIndex > newMaxIndex) ? newIndex : newMaxIndex;
-		indexData[j] = newIndex;
+		//var newIndex = indexData[j] + counter.maxIndex;
+		//newMaxIndex = (newIndex > newMaxIndex) ? newIndex : newMaxIndex;
+		indexData[j] += counter.maxIndex; //newIndex;
 	}
 
-	submesh.endIndex = newMaxIndex;
-	counter.maxIndex = newMaxIndex + 1;
+	//submesh.endIndex = newMaxIndex;
+	counter.maxIndex = counter.maxIndex + submesh.numIndex;
 }
 
 function processQueue() {
 	"use asm";
-	
-	var profileStart = null;
-	
+		
 	for (var mesh in meshesMemory)
 	{	
 		if (returned[mesh])
@@ -357,10 +357,12 @@ function processQueue() {
 		
 			needPush[mesh]  = true; 
 		
+			/*
 			if (addQueue.length || removeQueue.length)
 			{
 				console.log("MESH: " + mesh + " AQ: " + addQueue.length + " RQ: " + removeQueue.length);	
 			}
+			*/
 		
 			// First deal with removing objects from buffer
 			while(returned[mesh] && removeQueue.length)
@@ -435,7 +437,7 @@ function processQueue() {
 								
 					// Store to remove later
 					submesh.constructedBufferOffsets[segmentName] = ctx.oldLength;
-					memory.constructedBuffers[segmentName] = ctx.newBuffer;	
+					//memory.constructedBuffers[segmentName] = ctx.newBuffer;	
 				}
 				
 				_returnBuffers(mesh, memory, counter, false);			
