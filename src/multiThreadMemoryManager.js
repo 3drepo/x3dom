@@ -23,6 +23,87 @@ var meshesVisibilityMap = {};
 var meshesRemoveQueue = {};
 var meshesAddQueue    = {};
 
+var meshData          = {};
+
+function meshSort(a, b)
+{
+	"use strict";
+	// Sorting function
+	return 10.0 * (meshData[a].size - meshData[b].size) + 
+		(meshData[a].distance - meshData[b].distance);
+}
+
+// Counter intuitive but insertion sort is fast for almost 
+// already sorted arrays (which should be most of the time)
+function insertionSort(values, sortFunction) {
+	"use asm";
+	"use strict";
+	
+	var length = values.length;
+  
+	for(var i = 1; i < length; ++i) {
+		var temp = values[i];
+		var j = i - 1;
+	
+		var testValue = sortFunction(values[i], values[j]);
+	
+		for(; j >= 0 && testValue < 0; --j) {
+			values[j+1] = values[j];
+		}
+		
+    	values[j+1] = temp;
+	}
+};
+
+var indexOf = function(arr, item) {
+	"use strict";
+	"use asm";
+	
+	for (var i=0, len=arr.length; i!==len ; i++) {
+		if (arr[i] === item) { return i }
+	}
+	return -1;
+};
+
+function _addToQueues(addQueue, removeQueue, meshIDs, visibilityMap, memory)
+{
+	"use strict";
+	var subMeshID;
+	
+	for (subMeshID in memory.submeshes)
+	{
+		var visible = (indexOf(meshIDs) > -1);
+		
+		if (visible)
+		{
+			var removeQueueIDX = indexOf(removeQueue,subMeshID);
+			
+			if (removeQueueIDX > -1)
+			{
+				removeQueue.splice(removeQueueIDX, 1);
+			} else if (!visibilityMap[subMeshID]) {
+				if (indexOf(addQueue,subMeshID) === -1)
+				{
+					addQueue.push(subMeshID);
+				}
+			}
+		} else {
+			var addQueueIDX = indexOf(addQueue,subMeshID);
+			
+			if (addQueueIDX > -1)
+			{
+				addQueue.splice(addQueueIDX, 1);
+			} else if (visibilityMap[subMeshID]) {
+				
+				if (indexOf(removeQueue,subMeshID) === -1)
+				{
+					removeQueue.push(subMeshID);	
+				}
+			}
+		}
+	}
+};
+
 onmessage = function(event) {
 	"use strict";
 	
@@ -57,14 +138,17 @@ onmessage = function(event) {
 		memory.constructedBuffers = {};
 		memory.constructedBuffersLength = {};
 		
+		console.log("REGISTER ME");
+		
 		for (i = 0; i < event.data.bufferViews.length; i++)
 		{
-			var key = event.data.bufferViews[i].key;
-			var length = event.data.bufferViews[i].byteLength;
+			var bufferView = event.data.bufferViews[i];
+			var key        = bufferView.key;
+			var length     = bufferView.byteLength;
 			
 			memory.constructedBuffers[key] = new ArrayBuffer(length);
 			var newObject = new Uint8Array(memory.constructedBuffers[key]);
-			var srcObject = new Uint8Array(event.data.buffer[i]);
+			var srcObject = new Uint8Array(bufferView.content);
 			
 			newObject.set(srcObject);
 			
@@ -102,45 +186,19 @@ onmessage = function(event) {
 		// Pass in a list of IDs that need to be switched off
 		// and switch on. Create a queue here to work through
 		// based on a sorting mechanism.
-		
-		var subMeshID;
+		var meshIDs = Object.keys(event.data.meshes);
 
-		//debugger;
+		addQueue    = [];
+		removeQueue = [];
 		
-		for (subMeshID in memory.submeshes)
-		{
-			var visible = (event.data.ids.indexOf(subMeshID) > -1);
-			
-			if (visible)
-			{
-				var removeQueueIDX = removeQueue.indexOf(subMeshID);
-				
-				if (removeQueueIDX > -1)
-				{
-					removeQueue.splice(removeQueueIDX, 1);
-				} else if (!visibilityMap[subMeshID]) {
-					if (addQueue.indexOf(subMeshID) === -1)
-					{
-						addQueue.push(subMeshID);
-					}
-				}
-			} else {
-				var addQueueIDX = addQueue.indexOf(subMeshID);
-				
-				if (addQueueIDX > -1)
-				{
-					addQueue.splice(addQueueIDX, 1);
-				} else if (visibilityMap[subMeshID]) {
-					if (removeQueue.indexOf(subMeshID) === -1)
-					{
-						removeQueue.push(subMeshID);
-					}
-				}
-			}
-		}
+		meshesAddQueue[event.data.id]    = addQueue;
+		meshesRemoveQueue[event.data.id] = removeQueue;
 		
-		//debugger;
+		 _addToQueues(addQueue, removeQueue, meshIDs, visibilityMap, memory);
 		
+		meshData = event.data.meshes;
+		
+		insertionSort(addQueue, meshSort);		
 	} else if (event.data.type === "returnBuffers") {
 		for (i = 0; i < event.data.keys.length; i++)
 		{
@@ -354,8 +412,8 @@ function processQueue() {
 			var addQueue    = meshesAddQueue[mesh];
 			var counter     = meshesCounters[mesh];
 			var visibilityMap = meshesVisibilityMap[mesh];
-		
-			needPush[mesh]  = true; 
+			
+			var segmentNames, firstMesh, meshid, submesh, ctx, segmentName;
 		
 			/*
 			if (addQueue.length || removeQueue.length)
@@ -370,22 +428,22 @@ function processQueue() {
 				if (!tickStart)
 				{
 					tickStart = new Date().getTime();
+					needPush[mesh] = true;
 				}
-				
-				needPush[mesh] = true;
 					
-				var first = removeQueue.shift();
-				var submesh = memory.submeshes[first];
-				var segmentNames = Object.keys(memory.constructedBuffers);
+				meshid    = removeQueue.shift();
+				//meshid       = firstMesh.id;				
+				submesh      = memory.submeshes[meshid];
+				segmentNames = Object.keys(memory.constructedBuffers);
 				
 				// Now visible
-				visibilityMap[first] = false;
+				visibilityMap[meshid] = false;
 				
 				// Cut submesh out of buffer
 				for (var i = 0; i < segmentNames.length; i++)
 				{
-					var segmentName = segmentNames[i];
-					var ctx = {};
+					segmentName = segmentNames[i];
+					ctx = {};
 
 					_computeBuffers(ctx, memory, submesh, segmentName);
 					
@@ -409,21 +467,21 @@ function processQueue() {
 				if (!tickStart)
 				{
 					tickStart = new Date().getTime();
+					needPush[mesh] = true;					
 				}
 				
-				needPush[mesh] = true;
-				
-				var first = addQueue.shift();
-				var submesh = memory.submeshes[first];
-				var segmentNames = Object.keys(memory.constructedBuffers);
+				meshid    = addQueue.shift();
+				//meshid       = firstMesh.id;
+				submesh      = memory.submeshes[meshid];
+				segmentNames = Object.keys(memory.constructedBuffers);
 				
 				// Now visible
-				visibilityMap[first] = true;
+				visibilityMap[meshid] = true;
 				
 				for (var i = 0; i < segmentNames.length; i++)
 				{
-					var segmentName = segmentNames[i];					
-					var ctx = {};
+					segmentName = segmentNames[i];					
+					ctx = {};
 					
 					_addQueueComputeCTX(ctx, i, memory, counter, submesh, segmentName);
 					

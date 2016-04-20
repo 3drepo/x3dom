@@ -50,7 +50,7 @@ x3dom.registerNodeType(
 				
 			var that = this;
 			
-			that.N_THREADS = 3;
+			that.N_THREADS = 1;
 			
 			for (var n = 0;n < that.N_THREADS; n++)
 			{
@@ -820,14 +820,23 @@ x3dom.registerNodeType(
 					{
 						if (visibleMeshes.hasOwnProperty(meshID))
 						{
-							var subMeshPlaneMask = drawableCollection.cull(transform, {
+							var myGraphState = {
 								needCulling: true,
 								worldVolume: new x3dom.fields.BoxVolume(),
 								boundedNode : {
 									_vf : { render: true },
 									getVolume: function() { return visibleMeshes[meshID].bbox; }
 								}
-							}, singlePath, planeMask);	
+							};
+							
+							var subMeshPlaneMask = drawableCollection.cull(transform, myGraphState, singlePath, planeMask);
+							
+							visibleMeshes[meshID].id       = meshID;
+							visibleMeshes[meshID].size     = myGraphState.coverage;
+							visibleMeshes[meshID].distance = drawableCollection.viewMatrix.e3().subtract(visibleMeshes[meshID].bbox.center).length();
+							
+							//debugger;
+							//visibleMeshes[meshID].distance = 
 						
 							if (subMeshPlaneMask < 0)
 							{
@@ -843,7 +852,7 @@ x3dom.registerNodeType(
 					
 					for(var i = 0; i < this.geometryNodes.length; i++)
 					{
-						this.geometryNodes[i]._x3domNode.changeVisibility(Object.keys(visibleMeshes));
+						this.geometryNodes[i]._x3domNode.changeVisibility(visibleMeshes);
 					}
 				}
 				

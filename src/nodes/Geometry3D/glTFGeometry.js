@@ -101,7 +101,7 @@ x3dom.registerNodeType(
 			
 			this.memoryManagerRegistered = false;
 			
-            this.visibleIDs = [];
+            this.visibleMeshes = [];
         },
 
         {
@@ -662,10 +662,12 @@ x3dom.registerNodeType(
 							var gl = that.gl;
 							var header = that.gltfHeader;
 							
-							that._multipart.indices = {
-								count: event.data.count
-							};
+							if (!that._multipart.indices)
+							{
+								that._multipart.indices = {};
+							}
 							
+							that._multipart.indices.count = event.data.count
 							that._createGLBuffers(gl, header, event.data.keys, event.data.buffers, event.data.lengths, INDEX_TARGET, [that._multipart.indices]);
 							
 							var attributeObjects = [];
@@ -745,7 +747,6 @@ x3dom.registerNodeType(
 					type: "registerMe",
 					id: that._DEF,
 					ops: 2,
-					buffer: myBuffers,
 					bufferViews: that._bufferViews,
 					submeshes: that._createMultipartSubmeshes(requestedMesh)
 				},
@@ -805,15 +806,21 @@ x3dom.registerNodeType(
 				*/
             },
 
-		changeVisibility: function(IDs)
+		changeVisibility: function(visibleMeshes)
 		{
 			var changed = false;
+			
+			var newIDs    = Object.keys(visibleMeshes);
+			var oldIDs    = Object.keys(this.visibleMeshes);
+			
+			var newNumIDs = newIDs.length;
+			var oldNumIDs = oldIDs.length;
 		
-			if (this.visibleIDs.length === IDs.length)
+			if (newNumIDs === oldNumIDs)
 			{
-				for (var i = 0; i < this.visibleIDs.length; i++)
+				for (var i = 0; i < newIDs.length; i++)
 				{
-					if (this.visibleIDs[i] !== IDs[i])
+					if (newIDs[i] !== oldIDs[i])
 					{
 						changed = true;
 						break;
@@ -831,12 +838,12 @@ x3dom.registerNodeType(
 						{
 							id: this._DEF,
 							type: "changeVisibility",
-							ids: IDs
+							meshes: visibleMeshes
 						}
 					);
 				}
 			
-				this.visibleIDs = IDs;
+				this.visibleMeshes = visibleMeshes;
 			}				
 		},
 
