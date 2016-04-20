@@ -8,7 +8,8 @@
  *
  * Author: Sebastian Friston (based on ExternalGeometry.js)
  */
-
+var ATTRIBUTE_TARGET = 34962;
+var INDEX_TARGET     = 34963;
 
 /* ### glTFGeometry ### */
 x3dom.registerNodeType(
@@ -99,8 +100,9 @@ x3dom.registerNodeType(
 
             this._bufferViewGLBuffers = {};
 			
-			this.memoryManagerRegistered = false;
+            this.memoryManagerRegistered = false;
 			
+	    this.myMeshes      = [];
             this.visibleMeshes = [];
         },
 
@@ -400,30 +402,138 @@ x3dom.registerNodeType(
 				
 				if (that._bufferViews.length)
 				{
+					var bufferViews = {};
+					bufferViews[INDEX_TARGET] = {};
+					bufferViews[ATTRIBUTE_TARGET] = {};
+					
+					var bufferView;
+					
 					// If we have buffew views then load then singularly.
 					for (var bufferViewID in that._bufferViews)
 					{
 						if (that._bufferViews.hasOwnProperty(bufferViewID))
 						{
-							var bufferView = that._bufferViews[bufferViewID];
-							var buffer = that.gltfHeader.buffers[bufferView.buffer];
+							bufferView = that._bufferViews[bufferViewID];
+							var bufferId = bufferView.buffer;
+							var buffer = that.gltfHeader.buffers[bufferId];
+							var target = bufferView.target;
+																											
+							if (!bufferViews[target].hasOwnProperty(bufferId))
+							{
+								bufferViews[target][bufferId] = { byteArray: [], bufferViews: [] };
+							}
 							
-							var byteArray = [[bufferView.byteOffset, bufferView.byteOffset + bufferView.byteLength]];
-							
-							var bufferViewURI = that._nameSpace.getURL(buffer.uri) + "?bytes=" + JSON.stringify(byteArray);
-							
-							bufferView.uri     = bufferViewURI;
-							bufferView.type    = buffer.type;
-							bufferView.content = null;
-							bufferView.done    = false;
-											
-							that._nameSpace.doc.manageDownload(bufferView.uri, bufferView.type, function(bufferView) {
-								return function(xhr) {
-									that._onceDownloadedBuffer(xhr, bufferView);
-								}; 
-							}(bufferView));
+							bufferViews[target][bufferId].byteArray.push([bufferView.byteOffset, bufferView.byteOffset + bufferView.byteLength]);
+							bufferViews[target][bufferId].bufferViews.push(bufferView);
 						}
 					}
+					
+					var hasPopBuffers = true;
+					
+					// Detect whether or not this is POP buffer compatible
+					for (var accID in that.gltfHeader.accessors)
+					{
+						var accessor = that.gltfHeader.accessors[accID];
+						
+						if (true || !accessor.extras.lodRef)
+						{
+							hasPopBuffers = false;
+							break;
+						} else {
+							var bufferViewID = accessor.bufferView;
+							var bufferView   = that.gltfHeader.bufferViews[bufferViewID];
+							var bufferId     = bufferView.buffer;
+							
+							if (!bufferViews[INDEX_TARGET][bufferId].popBufferByteArray)
+							{
+								bufferViews[INDEX_TARGET][bufferId].popBufferByteArray = [];
+								bufferViews[INDEX_TARGET][bufferId].popBufferAccessors = [];
+							}
+							
+							var popBufferByteArray = bufferViews[INDEX_TARGET][bufferId].popBufferByteArray;
+							var popBufferAccessors = bufferViews[INDEX_TARGET][bufferId].popBufferAccessors;
+							
+							var submeshStart = null;
+							
+							for(var l = 0; l < accessor.extras.lodRef.length; l++)
+							{
+								var lodRef = accessor.extras.lodRef[l];
+								
+								if (!popBufferByteArray[l])
+								{
+									popBufferByteArray[l] = [];
+								}
+								
+								if (!submeshStart)
+								{
+									submeshStart = accessor.byteOffset + bufferView.byteOffset;
+								} else {
+									submeshStart = submeshEnd;	
+								}
+								
+								var submeshEnd   = submeshStart + (lodRef * 2);
+								popBufferByteArray[l].push([submeshStart, submeshEnd]);
+							}
+							
+							popBufferAccessors.push(accessor);
+						}
+					}
+										
+					for (var target in bufferViews)
+					{
+						var targetBufferViews = bufferViews[target];
+						
+						for (var bufferId in targetBufferViews)
+						{
+							var buffer = that.gltfHeader.buffers[bufferId];
+							var myBufferViews = targetBufferViews[bufferId].bufferViews;
+							
+							for (var i = 0; i < myBufferViews.length; i++)
+							{
+								bufferView = myBufferViews[i];
+								bufferView.type    = buffer.type;
+								bufferView.content = null;
+								bufferView.done    = false;								
+							}
+
+							if (targetBufferViews[bufferId].popBufferByteArray && target == INDEX_TARGET)
+							{
+								var targetPopBufferByteArray = targetBufferViews[bufferId].popBufferByteArray;
+								var numLods = targetPopBufferByteArray.length;
+								var bufferURIs = [];
+									
+								for (var l = 0; l < numLods; l++)
+								{
+									bufferURIs[l] = that._nameSpace.getURL(buffer.uri) + "?bytes=" + JSON.stringify(targetPopBufferByteArray[l]);
+								}
+								
+								var startDownload = function(myBufferViews, l) {
+									if (!bufferURIs[l + 1])
+									{
+										myBufferViews[0].done = true;
+									}
+									
+									if (bufferURIs[l])
+									{
+										that._nameSpace.doc.manageDownload(bufferURIs[l], buffer.type, function(xhr) {
+											that._onceDownloadedPopBufferViews(xhr, myBufferViews, l);
+											startDownload(myBufferViews, l + 1);
+										});
+									}
+								};
+								
+								startDownload(myBufferViews, 0);
+							} else {
+								var bufferURI = that._nameSpace.getURL(buffer.uri) + "?bytes=" + JSON.stringify(targetBufferViews[bufferId].byteArray);
+																
+								that._nameSpace.doc.manageDownload(bufferURI, buffer.type, function(myBufferViews) {
+									return function(xhr) {
+										that._onceDownloadedBufferViews(xhr, myBufferViews);
+									}; 
+								}(myBufferViews));									
+							}
+						}
+					}				
 				} else {
 					// create the list of buffers we want to download
 					for(bufferId in that.gltfHeader.buffers) {
@@ -449,8 +559,93 @@ x3dom.registerNodeType(
 				}
             },
 
-            _onceDownloadedBuffer: function(xhr, buffer){
+			_onceDownloadedBufferViews: function(xhr, bufferViews) {
+				"use strict";
+				
+                var that = this;
+				var bufferContents = null;
+				var i = 0;
+				var finished = true;
+				
+                if(xhr.status === 200 || xhr.status === 0)
+                {
+                    bufferContents = new Uint8Array(xhr.response);
+                }
+				
+				var totalBytes = 0;
+				
+				for (i = 0; i < bufferViews.length; i++)
+				{
+					var bufferView = bufferViews[i];
+					
+					bufferView.content = bufferContents.slice(totalBytes, totalBytes + bufferView.byteLength);
+					bufferView.done    = true;
+					
+					totalBytes += bufferView.byteLength;
+				}
+				
+				if (that._bufferViews.length)
+				{
+					for (i = 0; i < that._bufferViews.length; i++)
+					{
+						if (that._bufferViews[i].done !== true) {
+							finished = false;
+							break;
+						}
+					}
+				}
+				
+                if(finished)
+                {
+                    that._bufferDownloadCompleteCallback();
+                }								
+			},
 
+			_onceDownloadedPopBufferViews: function(xhr, bufferViews, popLevel) {
+				"use strict";
+				
+				var bufferView = bufferViews[0];
+				
+				if (bufferViews.length !== 1)
+				{
+					console.error("Shouldn't happen");
+				}
+				
+                var that = this;
+				var bufferContents = null;
+				var i = 0;
+				var finished = true;
+				
+				var totalBytes = 0;
+				
+				if (!bufferView.popContent)
+				{
+					bufferView.popContent = [];
+				}
+				
+				if(xhr.status === 200 || xhr.status === 0)
+                {
+					bufferView.popContent[popLevel] = new Uint8Array(xhr.response);
+				}
+				
+				if (that._bufferViews.length)
+				{
+					for (i = 0; i < that._bufferViews.length; i++)
+					{
+						if (that._bufferViews[i].done !== true) {
+							finished = false;
+							break;
+						}
+					}
+				}
+				
+                if(finished)
+                {
+                    that._bufferDownloadCompleteCallback();
+                }								
+			},
+
+            _onceDownloadedBuffer: function(xhr, buffer){
                 var that = this;
 
                 buffer.done = true;
@@ -460,22 +655,12 @@ x3dom.registerNodeType(
                 }
 
                 var finished = true;
-				
-				if (that._bufferViews.length)
+
+				for(bufferId in that._bufferData)
 				{
-					for (var i = 0; i < that._bufferViews.length; i++)
-					{
-						if (that._bufferViews[i].done !== true)
-						{
-							finished = false;
-						}
-					}
-				} else {
-					for(bufferId in that._bufferData)
-					{
-						if(that._bufferData[bufferId].done !== true){
-							finished = false;
-						}
+					if(that._bufferData[bufferId].done !== true){
+						finished = false;
+						break;
 					}
 				}
 				
@@ -483,8 +668,6 @@ x3dom.registerNodeType(
                 {
                     that._bufferDownloadCompleteCallback();
                 }
-				
-				
             },
 
             /**
@@ -655,9 +838,6 @@ x3dom.registerNodeType(
 						{
 							that.memoryManagerRegistered = true;
 						} else {
-
-							var ATTRIBUTE_TARGET = 34962;
-							var INDEX_TARGET     = 34963;
 							
 							var gl = that.gl;
 							var header = that.gltfHeader;
@@ -739,16 +919,29 @@ x3dom.registerNodeType(
 				} else {
 					for (var i = 0; i < that._bufferViews.length; i++)
 					{
-						myBuffers.push(that._bufferViews[i].content.buffer);
+						if(that._bufferViews[i].popContent) 
+						{
+							for (var l = 0; l < that._bufferViews[i].popContent.length; l++)
+							{
+								if (that._bufferViews[i].popContent[i])
+								{
+									myBuffer.push(that._bufferViews[i].popContent[l].buffer);
+								}	
+							}
+						} else {
+							myBuffers.push(that._bufferViews[i].content.buffer);
+						}
 					}
 				}
+				
+				var submeshes = that._createMultipartSubmeshes(requestedMesh);
 				
 				that.memoryManager.postMessage({
 					type: "registerMe",
 					id: that._DEF,
 					ops: 2,
 					bufferViews: that._bufferViews,
-					submeshes: that._createMultipartSubmeshes(requestedMesh)
+					submeshes: submeshes
 				},
 				myBuffers);
 				
@@ -805,6 +998,21 @@ x3dom.registerNodeType(
                 that._graphicsMemoryManager.rebuild();
 				*/
             },
+			
+		changeLOD: function(IDs, LODs)
+		{
+			if (this.memoryManagerRegistered)
+			{
+				this.memoryManager.postMessage(
+					{
+						id: this._DEF,
+						type: "changeLOD",
+						ids: IDs,
+						lods: LODs
+					}
+				);
+			}	
+		},
 
 		changeVisibility: function(visibleMeshes)
 		{
@@ -1177,6 +1385,12 @@ x3dom.registerNodeType(
                 indices.count = accessor.count;
                 indices.min = accessor.min[0];
                 indices.max = accessor.max[0];
+				
+				// Pop buffer enabled
+				if (accessor.extras && accessor.extras.lodRef)
+				{
+					indices.lodRef = accessor.extras.lodRef;
+				}
 
                 return indices;
             },

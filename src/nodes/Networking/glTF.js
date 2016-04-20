@@ -44,6 +44,8 @@ x3dom.registerNodeType(
 			
 			this.geometryNodes = [];
 			
+			this.meshMap = {};
+			
 			this.memoryManager = [];
 			this.memoryManagerCallback = [];
 			this.addMemoryManagerCallback = [];
@@ -289,6 +291,16 @@ x3dom.registerNodeType(
 						var mmIDX = i % that.N_THREADS;
                         newNode.appendChild(that._createShapeNode(sceneDoc, gltfNode.meshes[i], context, mmIDX));
                     }
+					
+					for (var accKey in header.accessors)
+					{
+						var accessor      = header.accessors[accKey];
+						var bufferViewKey = accessor.bufferView;
+						var bufferView    = header.bufferViews[bufferViewKey];
+						var meshID        = bufferView.extras.refID;
+						
+						this.meshMap[accessor.extras.refID] = meshID;
+					}
                 }
 
                 // finally process all the children
@@ -721,13 +733,12 @@ x3dom.registerNodeType(
             {
 				var that = this;
 				
+				//console.log("CHANGE VISIBILITY");
+				
 				if (this.partitioning)
 				{
 					var originalBoundingBox = this.graphState().worldVolume;
-					var treeStack = [{
-						treePointer: this.partitioning,
-						bbox: originalBoundingBox
-					}]; // Stack containing parts of the tree ready to process
+					var treeStack = [this.partitioning]; // Stack containing parts of the tree ready to process
 				
 					var _setAxisValue = function(axis, vec, value)
 					{
@@ -739,110 +750,99 @@ x3dom.registerNodeType(
 					var visibleMeshes = {};
 					
 					var start = new Date().getTime();
+					var inverseWorldTransform = transform.inverse();
+					
+					var frustumCorners = drawableCollection.viewFrustum.corners;
+					
+					// Applying the inverse transform to the view
+					// frustum should allow to cull in an axis aligned 
+					// manner.
+					var min = inverseWorldTransform.multMatrixPnt(frustumCorners[0]).toGL();
+					var max = inverseWorldTransform.multMatrixPnt(frustumCorners[0]).toGL();
+					
+					for (var i = 1; i < frustumCorners.length; i++)
+					{
+						var vec = inverseWorldTransform.multMatrixPnt(frustumCorners[i]).toGL();
+						
+						for(var j = 0; j < min.length; j++)
+						{
+							if (min[j] > vec[j]) min[j] = vec[j];
+							if (max[j] < vec[j]) max[j] = vec[j];
+						}
+					}
+					
+					var indexMap = { "X" : 0, "Y" : 1, "Z" : 2 };
 					
 					// Loop through the children elements and cull those from the
 					// multipart generation
 					while(treeStack.length)
 					{
-						var currentProcessing = treeStack.splice(0,1)[0];
+						var currentProcessing = treeStack.shift();
 						
-						if (currentProcessing.treePointer.hasOwnProperty("meshes"))
+						if (currentProcessing.hasOwnProperty("meshes"))
 						{
-							var currentVisibleMeshes = currentProcessing.treePointer.meshes;
+							var currentVisibleMeshes = currentProcessing.meshes;
 							
 							for (var meshID in currentVisibleMeshes)
 							{
 								if (!visibleMeshes.hasOwnProperty(meshID) && currentVisibleMeshes.hasOwnProperty(meshID))
 								{
-									visibleMeshes[meshID] = currentVisibleMeshes[meshID];
+									var superMeshID = this.meshMap[meshID];
+									
+									if (!visibleMeshes[superMeshID])
+									{
+										visibleMeshes[superMeshID] = {};
+									}
+									
+									visibleMeshes[superMeshID][meshID] = currentVisibleMeshes[meshID];
 								}
 							} 
 
 						} else {
-							// Process the left branch
-							// First construct the bounding volume containing the left side
-							var leftMin    = currentProcessing.bbox.min.copy();
-							var leftMax    = currentProcessing.bbox.max.copy();
+							var index = indexMap[currentProcessing.axis];
+							var axisValue = currentProcessing.value;
 							
-							_setAxisValue(currentProcessing.treePointer.axis, leftMax, currentProcessing.treePointer.value);
-							
-							var leftVolume = new x3dom.fields.BoxVolume(leftMin, leftMax);	
-							
-							// Create a fake graphState
-							var leftPlaneMask = drawableCollection.cull(transform, {
-								needCulling: true,
-								worldVolume: new x3dom.fields.BoxVolume(),
-								boundedNode : {
-									_vf : { render: true },
-									getVolume: function() { return leftVolume; }
-								}
-							}, singlePath, planeMask);
-							
-							if (leftPlaneMask >= 0)
+							if ((axisValue > min[index]) && (axisValue < max[index]))
 							{
-								treeStack.push({
-									treePointer: currentProcessing.treePointer.left,
-									bbox: leftVolume
-								});
-							} 
-							
-							// Process the right branch
-							// First construct the bounding volume containing the right side
-							var rightMin    = currentProcessing.bbox.min.copy();
-							var rightMax    = currentProcessing.bbox.max.copy();
-							
-							_setAxisValue(currentProcessing.treePointer.axis, rightMin, currentProcessing.treePointer.value);
-							
-							var rightVolume = new x3dom.fields.BoxVolume(rightMin, rightMax);	
-							
-							// Create a fake graphState
-							var rightPlaneMask = drawableCollection.cull(transform, {
-								needCulling: true,
-								worldVolume: new x3dom.fields.BoxVolume(),
-								boundedNode : {
-									_vf : { render: true },
-									getVolume: function() { return rightVolume; }
-								}
-							}, singlePath, planeMask);
-							
-							if (rightPlaneMask >= 0)
-							{
-								treeStack.push({
-									treePointer: currentProcessing.treePointer.right,
-									bbox: rightVolume
-								});
-							} 											
-						}					
+								treeStack.push(currentProcessing.left);														
+								treeStack.push(currentProcessing.right);
+							} else if ((axisValue > min[index]) && (axisValue > max[index])) {
+								treeStack.push(currentProcessing.left);
+							} else if ((axisValue < min[index]) && (axisValue < max[index])) {
+								treeStack.push(currentProcessing.right);
+							}						
+						}
 					}
 					
+					var visibleMeshInfo = {};
+					
 					// Refined mesh culling
-					for(var meshID in visibleMeshes)
+					for(var superMeshID in visibleMeshes)
 					{
-						if (visibleMeshes.hasOwnProperty(meshID))
+						visibleMeshInfo[superMeshID] = {};
+						
+						for (var meshID in visibleMeshes[superMeshID])
 						{
 							var myGraphState = {
 								needCulling: true,
 								worldVolume: new x3dom.fields.BoxVolume(),
 								boundedNode : {
 									_vf : { render: true },
-									getVolume: function() { return visibleMeshes[meshID].bbox; }
+									getVolume: function() { return visibleMeshes[superMeshID][meshID].bbox; }
 								}
 							};
 							
 							var subMeshPlaneMask = drawableCollection.cull(transform, myGraphState, singlePath, planeMask);
-							
-							visibleMeshes[meshID].id       = meshID;
-							visibleMeshes[meshID].size     = myGraphState.coverage;
-							visibleMeshes[meshID].distance = drawableCollection.viewMatrix.e3().subtract(visibleMeshes[meshID].bbox.center).length();
-							
-							//debugger;
-							//visibleMeshes[meshID].distance = 
-						
-							if (subMeshPlaneMask < 0)
+								
+							if (subMeshPlaneMask >= 0)
 							{
-								delete visibleMeshes[meshID];
+								visibleMeshInfo[superMeshID][meshID] = {
+									id: meshID,
+									size: myGraphState.coverage,
+									distance: drawableCollection.viewMatrix.e3().subtract(visibleMeshes[superMeshID][meshID].bbox.center).length()
+								};
 							}
-						}				
+						}			
 					}
 					
 					var end = new Date().getTime();
@@ -852,7 +852,9 @@ x3dom.registerNodeType(
 					
 					for(var i = 0; i < this.geometryNodes.length; i++)
 					{
-						this.geometryNodes[i]._x3domNode.changeVisibility(visibleMeshes);
+						var geomNode   = this.geometryNodes[i];
+						var geomNodeID = geomNode.getAttribute("DEF")
+						geomNode._x3domNode.changeVisibility(visibleMeshInfo[geomNodeID]);
 					}
 				}
 				

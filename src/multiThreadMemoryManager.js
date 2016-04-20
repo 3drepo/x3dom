@@ -6,10 +6,12 @@
  * (C)2016 3DRepo London
  * Licensed under the MIT
  *
- * Author: Sebastian Friston (based on ExternalGeometry.js)
+ * Author: Timothy Scully
  */
 
-var msPerFrame = 100000.0;
+var msPerFrame = 5.0;
+
+var processing = false;
 
 var tickStart = null;
 var returned = {};
@@ -25,7 +27,11 @@ var meshesAddQueue    = {};
 
 var meshData          = {};
 
-function meshSort(a, b)
+var visibleMeshIDs        = {};
+var visibleMeshIDsChanged = {};
+var visibleMeshData       = {};
+
+function meshSort(a, b, meshData)
 {
 	"use strict";
 	// Sorting function
@@ -35,7 +41,7 @@ function meshSort(a, b)
 
 // Counter intuitive but insertion sort is fast for almost 
 // already sorted arrays (which should be most of the time)
-function insertionSort(values, sortFunction) {
+function insertionSort(values, sortFunction, meshData) {
 	"use asm";
 	"use strict";
 	
@@ -45,7 +51,7 @@ function insertionSort(values, sortFunction) {
 		var temp = values[i];
 		var j = i - 1;
 	
-		var testValue = sortFunction(values[i], values[j]);
+		var testValue = sortFunction(values[j], values[i], meshData);
 	
 		for(; j >= 0 && testValue < 0; --j) {
 			values[j+1] = values[j];
@@ -72,7 +78,7 @@ function _addToQueues(addQueue, removeQueue, meshIDs, visibilityMap, memory)
 	
 	for (subMeshID in memory.submeshes)
 	{
-		var visible = (indexOf(meshIDs) > -1);
+		var visible = (indexOf(meshIDs, subMeshID) > -1);
 		
 		if (visible)
 		{
@@ -123,6 +129,7 @@ onmessage = function(event) {
 		meshesAddQueue[event.data.id] = [];
 		meshesCounters[event.data.id] = { primitiveCount: 0, maxIndex: 0 };
 		meshesVisibilityMap[event.data.id] = {};
+		visibleMeshIDs[event.data.id] = {};
 		
 		returned[event.data.id] = true;
 		needPush[event.data.id] = true;
@@ -137,8 +144,6 @@ onmessage = function(event) {
 		// Create buffers spaces that are ready to upload to the GPU
 		memory.constructedBuffers = {};
 		memory.constructedBuffersLength = {};
-		
-		console.log("REGISTER ME");
 		
 		for (i = 0; i < event.data.bufferViews.length; i++)
 		{
@@ -168,6 +173,11 @@ onmessage = function(event) {
 			memory.submeshes[submesh.primitive.extras.refID].constructedBufferOffsets = {};
 			memory.submeshes[submesh.primitive.extras.refID].numIndex = 0;
 			
+			if (memory.submeshes[submesh.primitive.extras.refID].lodRef)
+			{
+				memory.submeshes[submesh.primitive.extras.refID].lod = 0;
+			}
+			
 			// Add everything to queue to be displayed as quickly as possible.
 			//addQueue.push(submesh.primitive.extras.refID);
 			
@@ -188,17 +198,20 @@ onmessage = function(event) {
 		// based on a sorting mechanism.
 		var meshIDs = Object.keys(event.data.meshes);
 
+		/*
 		addQueue    = [];
 		removeQueue = [];
 		
 		meshesAddQueue[event.data.id]    = addQueue;
 		meshesRemoveQueue[event.data.id] = removeQueue;
+		*/
 		
-		 _addToQueues(addQueue, removeQueue, meshIDs, visibilityMap, memory);
+		visibleMeshIDs[event.data.id]        = meshIDs;
+		visibleMeshIDsChanged[event.data.id] = true;
+		visibleMeshData[event.data.id]       = event.data.meshes;
 		
-		meshData = event.data.meshes;
-		
-		insertionSort(addQueue, meshSort);		
+		//console.log(event.data.id + " " + meshIDs.length);
+						
 	} else if (event.data.type === "returnBuffers") {
 		for (i = 0; i < event.data.keys.length; i++)
 		{
@@ -208,9 +221,7 @@ onmessage = function(event) {
 		}
 		
 		returned[event.data.id] = true;
-	}
-	
-	
+	} 
 };
 
 function _returnBuffers(mesh, memory, counter, force) {
@@ -366,7 +377,7 @@ function _addQueueComputeCTX(ctx, i, memory, counter, submesh, segmentName) {
 	memory.constructedBuffersLength[segmentName] += ctx.segmentLength;
 
 	ctx.srcBufferLength = memory.data.bufferViews[i].byteLength; 
-	ctx.srcBuffer       = memory.data.buffer[i];
+	ctx.srcBuffer       = memory.data.bufferViews[i].content;
 	ctx.srcBufferObject = new Uint8Array(ctx.srcBuffer, 0, ctx.srcBufferLength);
 
 	// Construct new resized buffer
@@ -402,20 +413,30 @@ function _addQueuePerformReindexing(ctx, memory, counter, submesh, segmentName)
 
 function processQueue() {
 	"use asm";
-		
+	
 	for (var mesh in meshesMemory)
-	{	
-		if (returned[mesh])
+	{
+		var memory      = meshesMemory[mesh];
+		var removeQueue = meshesRemoveQueue[mesh];
+		var addQueue    = meshesAddQueue[mesh];
+		var counter     = meshesCounters[mesh];
+		var visibilityMap = meshesVisibilityMap[mesh];
+					
+		if (visibleMeshIDsChanged[mesh])
 		{
-			var memory      = meshesMemory[mesh];
-			var removeQueue = meshesRemoveQueue[mesh];
-			var addQueue    = meshesAddQueue[mesh];
-			var counter     = meshesCounters[mesh];
-			var visibilityMap = meshesVisibilityMap[mesh];
+			var meshIDs = visibleMeshIDs[mesh];
 			
+			visibleMeshIDsChanged[mesh] = false;
+			
+			_addToQueues(addQueue, removeQueue, meshIDs, visibilityMap, memory);
+			insertionSort(addQueue, meshSort, visibleMeshData[mesh]);				
+		}
+			
+		if (returned[mesh])
+		{			
 			var segmentNames, firstMesh, meshid, submesh, ctx, segmentName;
-		
-			/*
+
+			/*		
 			if (addQueue.length || removeQueue.length)
 			{
 				console.log("MESH: " + mesh + " AQ: " + addQueue.length + " RQ: " + removeQueue.length);	
@@ -509,7 +530,7 @@ function processQueue() {
 		}
 	}
 	
-	setTimeout("processQueue()",0);
+	setTimeout(processQueue, msPerFrame);
 };
 
 processQueue();

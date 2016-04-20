@@ -86,10 +86,10 @@ x3dom.fields.Eps = 0.000001;
  * @param {Number} [_32=0] - value at [3,2]
  * @param {Number} [_33=1] - value at [3,3]
  */
-x3dom.fields.SFMatrix4f = function(	_00, _01, _02, _03, 
-									_10, _11, _12, _13, 
-									_20, _21, _22, _23, 
-									_30, _31, _32, _33) 
+x3dom.fields.SFMatrix4f = function(	_00, _01, _02, _03,
+									_10, _11, _12, _13,
+									_20, _21, _22, _23,
+									_30, _31, _32, _33)
 {
     if (arguments.length === 0) {
         this._00 = 1; this._01 = 0; this._02 = 0; this._03 = 0;
@@ -409,14 +409,14 @@ x3dom.fields.SFMatrix4f.prototype.setRotate = function (quat) {
 x3dom.fields.SFMatrix4f.parseRotation = function (str) {
     var m = /^([+\-]?\d*\.*\d*[eE]?[+\-]?\d*?)\s*,?\s*([+\-]?\d*\.*\d*[eE]?[+\-]?\d*?)\s*,?\s*([+\-]?\d*\.*\d*[eE]?[+\-]?\d*?)\s*,?\s*([+\-]?\d*\.*\d*[eE]?[+\-]?\d*?)$/.exec(str);
     var x = +m[1], y = +m[2], z = +m[3], a = +m[4];
-    
+
     var d = Math.sqrt(x*x + y*y + z*z);
     if (d === 0) {
         x = 1; y = z = 0;
     } else {
         x /= d; y /= d; z /= d;
     }
-    
+
     var c = Math.cos(a);
     var s = Math.sin(a);
     var t = 1 - c;
@@ -446,26 +446,26 @@ x3dom.fields.SFMatrix4f.parse = function (str) {
     {
         if (!needTranspose) {
             return new x3dom.fields.SFMatrix4f(
-                arr[0],  arr[1],  arr[2],  arr[3], 
-                arr[4],  arr[5],  arr[6],  arr[7], 
-                arr[8],  arr[9],  arr[10], arr[11], 
+                arr[0],  arr[1],  arr[2],  arr[3],
+                arr[4],  arr[5],  arr[6],  arr[7],
+                arr[8],  arr[9],  arr[10], arr[11],
                 arr[12], arr[13], arr[14], arr[15]
             );
         }
         else {
             return new x3dom.fields.SFMatrix4f(
-                arr[0],  arr[4],  arr[8],  arr[12], 
-                arr[1],  arr[5],  arr[9],  arr[13], 
-                arr[2],  arr[6],  arr[10], arr[14], 
+                arr[0],  arr[4],  arr[8],  arr[12],
+                arr[1],  arr[5],  arr[9],  arr[13],
+                arr[2],  arr[6],  arr[10], arr[14],
                 arr[3],  arr[7],  arr[11], arr[15]
             );
         }
     }
     else if (arr.length === 6) {
         return new x3dom.fields.SFMatrix4f(
-            arr[0],  arr[1],  0,  arr[4], 
-            arr[2],  arr[3],  0,  arr[5], 
-                 0,       0,  1,  0, 
+            arr[0],  arr[1],  0,  arr[4],
+            arr[2],  arr[3],  0,  arr[5],
+                 0,       0,  1,  0,
                  0,       0,  0,  1
         );
     }
@@ -482,21 +482,21 @@ x3dom.fields.SFMatrix4f.parse = function (str) {
  */
 x3dom.fields.SFMatrix4f.prototype.mult = function (that)  {
     return new x3dom.fields.SFMatrix4f(
-        this._00*that._00+this._01*that._10+this._02*that._20+this._03*that._30, 
-        this._00*that._01+this._01*that._11+this._02*that._21+this._03*that._31, 
-        this._00*that._02+this._01*that._12+this._02*that._22+this._03*that._32, 
+        this._00*that._00+this._01*that._10+this._02*that._20+this._03*that._30,
+        this._00*that._01+this._01*that._11+this._02*that._21+this._03*that._31,
+        this._00*that._02+this._01*that._12+this._02*that._22+this._03*that._32,
         this._00*that._03+this._01*that._13+this._02*that._23+this._03*that._33,
-        this._10*that._00+this._11*that._10+this._12*that._20+this._13*that._30, 
-        this._10*that._01+this._11*that._11+this._12*that._21+this._13*that._31, 
-        this._10*that._02+this._11*that._12+this._12*that._22+this._13*that._32, 
+        this._10*that._00+this._11*that._10+this._12*that._20+this._13*that._30,
+        this._10*that._01+this._11*that._11+this._12*that._21+this._13*that._31,
+        this._10*that._02+this._11*that._12+this._12*that._22+this._13*that._32,
         this._10*that._03+this._11*that._13+this._12*that._23+this._13*that._33,
-        this._20*that._00+this._21*that._10+this._22*that._20+this._23*that._30, 
-        this._20*that._01+this._21*that._11+this._22*that._21+this._23*that._31, 
-        this._20*that._02+this._21*that._12+this._22*that._22+this._23*that._32, 
+        this._20*that._00+this._21*that._10+this._22*that._20+this._23*that._30,
+        this._20*that._01+this._21*that._11+this._22*that._21+this._23*that._31,
+        this._20*that._02+this._21*that._12+this._22*that._22+this._23*that._32,
         this._20*that._03+this._21*that._13+this._22*that._23+this._23*that._33,
-        this._30*that._00+this._31*that._10+this._32*that._20+this._33*that._30, 
-        this._30*that._01+this._31*that._11+this._32*that._21+this._33*that._31, 
-        this._30*that._02+this._31*that._12+this._32*that._22+this._33*that._32, 
+        this._30*that._00+this._31*that._10+this._32*that._20+this._33*that._30,
+        this._30*that._01+this._31*that._11+this._32*that._21+this._33*that._31,
+        this._30*that._02+this._31*that._12+this._32*that._22+this._33*that._32,
         this._30*that._03+this._31*that._13+this._32*that._23+this._33*that._33
     );
 };
@@ -662,7 +662,7 @@ x3dom.fields.SFMatrix4f.prototype.setValue = function (v1, v2, v3, v4) {
     this._10 = v1.y; this._11 = v2.y; this._12 = v3.y;
     this._20 = v1.z; this._21 = v2.z; this._22 = v3.z;
     this._30 = 0;    this._31 = 0;    this._32 = 0;
-    
+
     if (arguments.length > 3) {
         this._03 = v4.x;
         this._13 = v4.y;
@@ -741,26 +741,26 @@ x3dom.fields.SFMatrix4f.prototype.at = function (i, j) {
 x3dom.fields.SFMatrix4f.prototype.sqrt = function () {
     var Y = x3dom.fields.SFMatrix4f.identity();
     var result = x3dom.fields.SFMatrix4f.copy(this);
-    
+
     for (var i=0; i<6; i++)
     {
         var iX = result.inverse();
         var iY = (i == 0) ? x3dom.fields.SFMatrix4f.identity() : Y.inverse();
-        
+
         var rd = result.det(), yd = Y.det();
-        
+
         var g = Math.abs( Math.pow(rd * yd, -0.125) );
         var ig = 1.0 / g;
-        
+
         result = result.multiply(g);
         result = result.addScaled(iY, ig);
         result = result.multiply(0.5);
-        
+
         Y = Y.multiply(g);
         Y = Y.addScaled(iX, ig);
         Y = Y.multiply(0.5);
     }
-    
+
     return result;
 };
 
@@ -784,7 +784,7 @@ x3dom.fields.SFMatrix4f.prototype.normInfinity = function () {
     if ((t = Math.abs(this._03)) > m) {
         m = t;
     }
-        
+
     if ((t = Math.abs(this._10)) > m) {
         m = t;
     }
@@ -797,7 +797,7 @@ x3dom.fields.SFMatrix4f.prototype.normInfinity = function () {
     if ((t = Math.abs(this._13)) > m) {
         m = t;
     }
-    
+
     if ((t = Math.abs(this._20)) > m) {
         m = t;
     }
@@ -810,7 +810,7 @@ x3dom.fields.SFMatrix4f.prototype.normInfinity = function () {
     if ((t = Math.abs(this._23)) > m) {
         m = t;
     }
-        
+
     if ((t = Math.abs(this._30)) > m) {
         m = t;
     }
@@ -833,23 +833,23 @@ x3dom.fields.SFMatrix4f.prototype.normInfinity = function () {
  * @returns {Number} the resulting number
  */
 x3dom.fields.SFMatrix4f.prototype.norm1_3x3 = function() {
-    var max = Math.abs(this._00) + 
+    var max = Math.abs(this._00) +
               Math.abs(this._10) +
               Math.abs(this._20);
     var t = 0;
-    
+
     if ((t = Math.abs(this._01) +
              Math.abs(this._11) +
              Math.abs(this._21)) > max) {
         max = t;
     }
-    
+
     if ((t = Math.abs(this._02) +
              Math.abs(this._12) +
              Math.abs(this._22)) > max) {
         max = t;
     }
-    
+
     return max;
 };
 
@@ -859,23 +859,23 @@ x3dom.fields.SFMatrix4f.prototype.norm1_3x3 = function() {
  * @returns {Number} the resulting number
  */
 x3dom.fields.SFMatrix4f.prototype.normInf_3x3 = function() {
-    var max = Math.abs(this._00) + 
+    var max = Math.abs(this._00) +
               Math.abs(this._01) +
               Math.abs(this._02);
     var t = 0;
-    
+
     if ((t = Math.abs(this._10) +
              Math.abs(this._11) +
              Math.abs(this._12)) > max) {
         max = t;
     }
-    
+
     if ((t = Math.abs(this._20) +
              Math.abs(this._21) +
              Math.abs(this._22)) > max) {
         max = t;
     }
-    
+
     return max;
 };
 
@@ -886,19 +886,19 @@ x3dom.fields.SFMatrix4f.prototype.normInf_3x3 = function() {
  */
 x3dom.fields.SFMatrix4f.prototype.adjointT_3x3 = function () {
 	var result = x3dom.fields.SFMatrix4f.identity();
-	
+
     result._00 = this._11 * this._22 - this._12 * this._21;
     result._01 = this._12 * this._20 - this._10 * this._22;
     result._02 = this._10 * this._21 - this._11 * this._20;
-    
+
     result._10 = this._21 * this._02 - this._22 * this._01;
     result._11 = this._22 * this._00 - this._20 * this._02;
     result._12 = this._20 * this._01 - this._21 * this._00;
-    
+
     result._20 = this._01 * this._12 - this._02 * this._11;
     result._21 = this._02 * this._10 - this._00 * this._12;
     result._22 = this._00 * this._11 - this._01 * this._10;
-	
+
 	return result;
 };
 
@@ -909,13 +909,13 @@ x3dom.fields.SFMatrix4f.prototype.adjointT_3x3 = function () {
  */
 x3dom.fields.SFMatrix4f.prototype.equals = function (that) {
     var eps = 0.000000000001;
-    return Math.abs(this._00-that._00) < eps && Math.abs(this._01-that._01) < eps && 
+    return Math.abs(this._00-that._00) < eps && Math.abs(this._01-that._01) < eps &&
            Math.abs(this._02-that._02) < eps && Math.abs(this._03-that._03) < eps &&
-           Math.abs(this._10-that._10) < eps && Math.abs(this._11-that._11) < eps && 
+           Math.abs(this._10-that._10) < eps && Math.abs(this._11-that._11) < eps &&
            Math.abs(this._12-that._12) < eps && Math.abs(this._13-that._13) < eps &&
-           Math.abs(this._20-that._20) < eps && Math.abs(this._21-that._21) < eps && 
+           Math.abs(this._20-that._20) < eps && Math.abs(this._21-that._21) < eps &&
            Math.abs(this._22-that._22) < eps && Math.abs(this._23-that._23) < eps &&
-           Math.abs(this._30-that._30) < eps && Math.abs(this._31-that._31) < eps && 
+           Math.abs(this._30-that._30) < eps && Math.abs(this._31-that._31) < eps &&
            Math.abs(this._32-that._32) < eps && Math.abs(this._33-that._33) < eps;
 };
 
@@ -931,23 +931,23 @@ x3dom.fields.SFMatrix4f.prototype.equals = function (that) {
  * @param {x3dom.fields.SFVec3f} [center=undefined]  - center point for rotation and scaling, if not origin
  */
 x3dom.fields.SFMatrix4f.prototype.getTransform = function(
-				        translation, rotation, scaleFactor, scaleOrientation, center) 
+				        translation, rotation, scaleFactor, scaleOrientation, center)
 {
 	var m = null;
-	
+
 	if (arguments.length > 4) {
 		m = x3dom.fields.SFMatrix4f.translation(center.negate());
 		m = m.mult(this);
-		
+
 		var c = x3dom.fields.SFMatrix4f.translation(center);
 		m = m.mult(c);
 	}
 	else {
 	    m = x3dom.fields.SFMatrix4f.copy(this);
 	}
-	
+
 	var flip = m.decompose(translation, rotation, scaleFactor, scaleOrientation);
-	
+
 	scaleFactor.setValues(scaleFactor.multiply(flip));
 };
 
@@ -961,26 +961,26 @@ x3dom.fields.SFMatrix4f.prototype.getTransform = function(
  * @param {x3dom.fields.Quaternion} so - rotation (quaternion) to be applied before scaling
  * @returns {Number} signum of determinant of the transposed adjoint upper 3x3 matrix
  */
-x3dom.fields.SFMatrix4f.prototype.decompose = function(t, r, s, so) 
+x3dom.fields.SFMatrix4f.prototype.decompose = function(t, r, s, so)
 {
 	var A = x3dom.fields.SFMatrix4f.copy(this);
-	
+
     var Q  = x3dom.fields.SFMatrix4f.identity(),
 		S  = x3dom.fields.SFMatrix4f.identity(),
 		SO = x3dom.fields.SFMatrix4f.identity();
-	
+
 	t.x = A._03;
     t.y = A._13;
     t.z = A._23;
-    
+
     A._03 = 0.0;
     A._13 = 0.0;
     A._23 = 0.0;
-    
+
     A._30 = 0.0;
     A._31 = 0.0;
     A._32 = 0.0;
-	
+
 	var det = A.polarDecompose(Q, S);
     var f = 1.0;
 
@@ -988,13 +988,13 @@ x3dom.fields.SFMatrix4f.prototype.decompose = function(t, r, s, so)
         Q = Q.negate();
         f = -1.0;
     }
-    
+
     r.setValue(Q);
-    
+
     S.spectralDecompose(SO, s);
-    
+
     so.setValue(SO);
-	
+
 	return f;
 };
 
@@ -1007,24 +1007,24 @@ x3dom.fields.SFMatrix4f.prototype.decompose = function(t, r, s, so)
 x3dom.fields.SFMatrix4f.prototype.polarDecompose = function(Q, S)
 {
     var TOL = 0.000000000001;
-	
+
     var Mk = this.transpose();
     var Ek = x3dom.fields.SFMatrix4f.identity();
-	
+
     var Mk_one = Mk.norm1_3x3();
     var Mk_inf = Mk.normInf_3x3();
-    
+
 	var MkAdjT;
     var MkAdjT_one, MkAdjT_inf;
     var Ek_one, Mk_det;
-       
+
     do
     {
         // compute transpose of adjoint
 		MkAdjT = Mk.adjointT_3x3();
-        
-        // Mk_det = det(Mk) -- computed from the adjoint        
-        Mk_det = Mk._00 * MkAdjT._00 + 
+
+        // Mk_det = det(Mk) -- computed from the adjoint
+        Mk_det = Mk._00 * MkAdjT._00 +
                  Mk._01 * MkAdjT._01 +
                  Mk._02 * MkAdjT._02;
 
@@ -1034,29 +1034,29 @@ x3dom.fields.SFMatrix4f.prototype.polarDecompose = function(Q, S)
             x3dom.debug.logWarning("polarDecompose: Mk_det == 0.0");
             break;
         }
-        
+
         MkAdjT_one = MkAdjT.norm1_3x3();
         MkAdjT_inf = MkAdjT.normInf_3x3();
-        
+
         // compute update factors
-        var gamma = Math.sqrt( Math.sqrt((MkAdjT_one * MkAdjT_inf) / 
+        var gamma = Math.sqrt( Math.sqrt((MkAdjT_one * MkAdjT_inf) /
 							  (Mk_one * Mk_inf)) / Math.abs(Mk_det) );
-        
+
         var g1 = 0.5 * gamma;
         var g2 = 0.5 / (gamma * Mk_det);
-        
+
         Ek.setValues(Mk);
-        
+
         Mk = Mk.multiply (g1);         // this does:
         Mk = Mk.addScaled(MkAdjT, g2); // Mk = g1 * Mk + g2 * MkAdjT
         Ek = Ek.addScaled(Mk, -1.0);   // Ek -= Mk;
-        
+
         Ek_one = Ek.norm1_3x3();
         Mk_one = Mk.norm1_3x3();
         Mk_inf = Mk.normInf_3x3();
-        
+
     } while (Ek_one > (Mk_one * TOL));
-    
+
     Q.setValues(Mk.transpose());
     S.setValues(Mk.mult(this));
 
@@ -1068,7 +1068,7 @@ x3dom.fields.SFMatrix4f.prototype.polarDecompose = function(Q, S)
 			S['_'+i+j] = 0.5 * (S['_'+j+i] + S['_'+i+j]);
         }
     }
-    
+
     return Mk_det;
 };
 
@@ -1083,28 +1083,28 @@ x3dom.fields.SFMatrix4f.prototype.spectralDecompose = function(SO, k)
     var maxIterations = 20;
     var diag = [this._00, this._11, this._22];
     var offDiag = [this._12, this._20, this._01];
-    
+
     for (var iter = 0; iter < maxIterations; ++iter)
     {
         var sm = Math.abs(offDiag[0]) + Math.abs(offDiag[1]) + Math.abs(offDiag[2]);
-        
-        if (sm == 0) {        
+
+        if (sm == 0) {
             break;
         }
-        
+
         for (var i = 2; i >= 0; --i)
         {
             var p = next[i];
             var q = next[p];
-            
+
             var absOffDiag = Math.abs(offDiag[i]);
-            var g          = 100.0 * absOffDiag; 
-            
+            var g          = 100.0 * absOffDiag;
+
             if (absOffDiag > 0.0)
             {
                 var t = 0, h = diag[q] - diag[p];
                 var absh = Math.abs(h);
-                
+
                 if (absh + g == absh)
                 {
                     t = offDiag[i] / h;
@@ -1113,38 +1113,38 @@ x3dom.fields.SFMatrix4f.prototype.spectralDecompose = function(SO, k)
                 {
                     var theta = 0.5 * h / offDiag[i];
                     t = 1.0 / (Math.abs(theta) + Math.sqrt(theta * theta + 1.0));
-                    
+
                     t = theta < 0.0 ? -t : t;
                 }
-            
+
                 var c = 1.0 / Math.sqrt(t * t + 1.0);
                 var s = t * c;
-                
+
                 var tau = s / (c + 1.0);
                 var ta  = t * offDiag[i];
-                
+
                 offDiag[i] = 0.0;
-                
+
                 diag[p] -= ta;
                 diag[q] += ta;
-                
+
                 var offDiagq = offDiag[q];
-                
+
                 offDiag[q] -= s * (offDiag[p] + tau * offDiagq);
                 offDiag[p] += s * (offDiagq - tau * offDiag[p]);
-                
+
                 for (var j = 2; j >= 0; --j)
                 {
                     var a = SO['_'+j+p];
                     var b = SO['_'+j+q];
-                    
+
                     SO['_'+j+p] -= s * (b + tau * a);
                     SO['_'+j+q] += s * (a - tau * b);
                 }
             }
         }
     }
-    
+
     k.x = diag[0];
     k.y = diag[1];
     k.z = diag[2];
@@ -1157,7 +1157,7 @@ x3dom.fields.SFMatrix4f.prototype.spectralDecompose = function(SO, k)
 x3dom.fields.SFMatrix4f.prototype.log = function () {
     var maxiter = 12;
     var eps = 1e-12;
-    
+
     var A = x3dom.fields.SFMatrix4f.copy(this),
         Z = x3dom.fields.SFMatrix4f.copy(this);
 
@@ -1166,7 +1166,7 @@ x3dom.fields.SFMatrix4f.prototype.log = function () {
     Z._11 -= 1;
     Z._22 -= 1;
     Z._33 -= 1;
-    
+
     var k = 0;
 
     while (Z.normInfinity() > 0.5)
@@ -1189,7 +1189,7 @@ x3dom.fields.SFMatrix4f.prototype.log = function () {
 
     A = A.negate();
     Z.setValues(A);
-    
+
     var result = x3dom.fields.SFMatrix4f.copy(A);
     var i = 1;
 
@@ -1200,7 +1200,7 @@ x3dom.fields.SFMatrix4f.prototype.log = function () {
 
         result = result.addScaled(Z, 1.0 / i);
     }
-    
+
     return result.multiply( -(1 << k) );
 };
 
@@ -1210,15 +1210,15 @@ x3dom.fields.SFMatrix4f.prototype.log = function () {
  */
 x3dom.fields.SFMatrix4f.prototype.exp = function () {
     var q = 6;
-    var A = x3dom.fields.SFMatrix4f.copy(this), 
-        D = x3dom.fields.SFMatrix4f.identity(), 
-        N = x3dom.fields.SFMatrix4f.identity(), 
+    var A = x3dom.fields.SFMatrix4f.copy(this),
+        D = x3dom.fields.SFMatrix4f.identity(),
+        N = x3dom.fields.SFMatrix4f.identity(),
         result = x3dom.fields.SFMatrix4f.identity();
     var k = 0, c = 1.0;
 
     var j = 1.0 + parseInt(Math.log(A.normInfinity() / 0.693));
     //var j = 1.0 + (Math.log(A.normInfinity() / 0.693) | 0);
-    
+
     if (j < 0) {
         j = 0;
     }
@@ -1240,14 +1240,14 @@ x3dom.fields.SFMatrix4f.prototype.exp = function () {
             D = D.addScaled(result, c);
         }
     }
-    
+
     result = D.inverse().mult(N);
 
     for (k = 0; k < j; k++)
     {
         result = result.mult(result);
     }
-    
+
     return result;
 };
 
@@ -1293,10 +1293,10 @@ x3dom.fields.SFMatrix4f.prototype.det = function () {
     var b4 = this._13;
     var c4 = this._23;
     var d4 = this._33;
-    
-    return (a1 * this.det3(b2, b3, b4, c2, c3, c4, d2, d3, d4) - 
-            b1 * this.det3(a2, a3, a4, c2, c3, c4, d2, d3, d4) + 
-            c1 * this.det3(a2, a3, a4, b2, b3, b4, d2, d3, d4) - 
+
+    return (a1 * this.det3(b2, b3, b4, c2, c3, c4, d2, d3, d4) -
+            b1 * this.det3(a2, a3, a4, c2, c3, c4, d2, d3, d4) +
+            c1 * this.det3(a2, a3, a4, b2, b3, b4, d2, d3, d4) -
             d1 * this.det3(a2, a3, a4, b2, b3, b4, c2, c3, c4));
 };
 
@@ -1543,7 +1543,7 @@ x3dom.fields.SFVec2f.prototype.divide = function (n) {
 };
 
 x3dom.fields.SFVec2f.prototype.equals = function (that, eps) {
-    return Math.abs(this.x - that.x) < eps && 
+    return Math.abs(this.x - that.x) < eps &&
            Math.abs(this.y - that.y) < eps;
 };
 
@@ -1618,7 +1618,7 @@ x3dom.fields.SFVec3f.prototype.copy = function() {
 x3dom.fields.SFVec3f.prototype.setValues = function (that) {
     this.x = that.x;
     this.y = that.y;
-    this.z = that.z;   
+    this.z = that.z;
 };
 
 x3dom.fields.SFVec3f.prototype.at = function (i) {
@@ -1651,7 +1651,7 @@ x3dom.fields.SFVec3f.prototype.dot = function (that) {
 };
 
 x3dom.fields.SFVec3f.prototype.cross = function (that) {
-    return new x3dom.fields.SFVec3f( this.y*that.z - this.z*that.y, 
+    return new x3dom.fields.SFVec3f( this.y*that.z - this.z*that.y,
                                      this.z*that.x - this.x*that.z,
                                      this.x*that.y - this.y*that.x );
 };
@@ -1685,7 +1685,7 @@ x3dom.fields.SFVec3f.prototype.divide = function (n) {
 };
 
 x3dom.fields.SFVec3f.prototype.equals = function (that, eps) {
-    return Math.abs(this.x - that.x) < eps && 
+    return Math.abs(this.x - that.x) < eps &&
            Math.abs(this.y - that.y) < eps &&
            Math.abs(this.z - that.z) < eps;
 };
@@ -1847,15 +1847,15 @@ x3dom.fields.Quaternion.prototype.toAxisAngle = function()
     var x = 0, y = 0, z = 0;
     var s = 0, a = 0;
     var that = this;
-    
+
     if ( this.w > 1 )
     {
         that = x3dom.fields.Quaternion.normalize( this );
     }
-    
+
     a = 2 * Math.acos( that.w );
     s = Math.sqrt( 1 - that.w * that.w );
-    
+
     if ( s == 0 ) //< x3dom.fields.Eps )
     {
         x = that.x;
@@ -1868,7 +1868,7 @@ x3dom.fields.Quaternion.prototype.toAxisAngle = function()
         y = that.y / s;
         z = that.z / s;
     }
-    
+
     return [ new x3dom.fields.SFVec3f(x,y,z), a ];
 };
 
@@ -1886,7 +1886,7 @@ x3dom.fields.Quaternion.prototype.setValue = function(matrix)
     var nxt = [1, 2, 0];
 
     tr = matrix._00 + matrix._11 + matrix._22;
-	
+
     if (tr > 0.0)
     {
         s = Math.sqrt(tr + 1.0);
@@ -1975,7 +1975,7 @@ x3dom.fields.Quaternion.prototype.subtract = function (that) {
     return new x3dom.fields.Quaternion(this.x - that.x, this.y - that.y, this.z - that.z, this.w - that.w);
 };
 
-x3dom.fields.Quaternion.prototype.setValues = function (that) { 
+x3dom.fields.Quaternion.prototype.setValues = function (that) {
     this.x = that.x;
     this.y = that.y;
     this.z = that.z;
@@ -2023,7 +2023,7 @@ x3dom.fields.Quaternion.prototype.slerp = function (that, t) {
 
     // calculate interpolating coeffs
     var scalerot0, scalerot1;
-    
+
     if ((1.0 - cosom) > 0.00001)
     {
         // standard case
@@ -2091,7 +2091,7 @@ x3dom.fields.Quaternion.rotateFromTo = function (fromVec, toVec) {
     // cos^2 t = ( 1 + cos (2t) ) / 2
     // w part is cosine of half the rotation angle
     s = Math.sqrt(0.5 * (1.0 + cost));
-    
+
     return new x3dom.fields.Quaternion(axis.x, axis.y, axis.z, s);
 };
 
@@ -2163,11 +2163,11 @@ x3dom.fields.SFColor.prototype.getHSV = function () {
 x3dom.fields.SFColor.prototype.setValues = function (color) {
     this.r = color.r;
     this.g = color.g;
-    this.b = color.b;   
+    this.b = color.b;
 };
 
 x3dom.fields.SFColor.prototype.equals = function (that, eps) {
-    return Math.abs(this.r - that.r) < eps && 
+    return Math.abs(this.r - that.r) < eps &&
            Math.abs(this.g - that.g) < eps &&
            Math.abs(this.b - that.b) < eps;
 };
@@ -2210,7 +2210,7 @@ x3dom.fields.SFColor.prototype.setValueByStr = function(str) {
 
 x3dom.fields.SFColor.colorParse = function(color) {
     var red = 0, green = 0, blue = 0;
-    
+
     // definition of css color names
     var color_names = {
         aliceblue: 'f0f8ff',    antiquewhite: 'faebd7', aqua: '00ffff',
@@ -2262,16 +2262,16 @@ x3dom.fields.SFColor.colorParse = function(color) {
         wheat: 'f5deb3',        white: 'ffffff',        whitesmoke: 'f5f5f5',
         yellow: 'ffff00',       yellowgreen: '9acd32'
     };
-    
+
     if (color_names[color]) {
         // first check if color is given as colorname
         color = "#" + color_names[color];
     }
-    
+
     if (color.substr && color.substr(0,1) === "#") {
         color = color.substr(1);
         var len = color.length;
-        
+
         if (len === 6) {
             red   = parseInt("0x"+color.substr(0,2), 16) / 255.0;
             green = parseInt("0x"+color.substr(2,2), 16) / 255.0;
@@ -2283,7 +2283,7 @@ x3dom.fields.SFColor.colorParse = function(color) {
             blue  = parseInt("0x"+color.substr(2,1), 16) / 15.0;
         }
     }
-    
+
     return new x3dom.fields.SFColor( red, green, blue );
 };
 
@@ -2304,7 +2304,7 @@ x3dom.fields.SFColorRGBA = function(r, g, b, a) {
         this.g = g;
         this.b = b;
         this.a = a;
-    }    
+    }
 };
 
 x3dom.fields.SFColorRGBA.parse = function(str) {
@@ -2328,12 +2328,12 @@ x3dom.fields.SFColorRGBA.prototype.copy = function() {
 x3dom.fields.SFColorRGBA.prototype.setValues = function (color) {
     this.r = color.r;
     this.g = color.g;
-    this.b = color.b;   
-    this.a = color.a;   
+    this.b = color.b;
+    this.a = color.a;
 };
 
 x3dom.fields.SFColorRGBA.prototype.equals = function (that, eps) {
-    return Math.abs(this.r - that.r) < eps && 
+    return Math.abs(this.r - that.r) < eps &&
            Math.abs(this.g - that.g) < eps &&
            Math.abs(this.b - that.b) < eps &&
            Math.abs(this.a - that.a) < eps;
@@ -2512,9 +2512,9 @@ x3dom.fields.SFImage.prototype.setValueByStr = function(str) {
     var n = mc.length;
     var c2 = 0;
     var hex = "0123456789ABCDEF";
-    
+
     this.array = [];
-    
+
     if (n > 2) {
         this.width = +mc[0];
         this.height = +mc[1];
@@ -2526,7 +2526,7 @@ x3dom.fields.SFImage.prototype.setValueByStr = function(str) {
         this.comp = 0;
         return;
     }
-    
+
     var len, i;
     for (i=3; i<n; i++) {
         var r, g, b, a;
@@ -2534,7 +2534,7 @@ x3dom.fields.SFImage.prototype.setValueByStr = function(str) {
         if (!mc[i].substr) {
             continue;
         }
-        
+
         if (mc[i].substr(1,1).toLowerCase() !== "x") {
             // Maybe optimize by directly parsing value!
             var inp = parseInt(mc[i], 10);
@@ -2565,7 +2565,7 @@ x3dom.fields.SFImage.prototype.setValueByStr = function(str) {
         else if (mc[i].substr(1,1).toLowerCase() === "x") {
             mc[i] = mc[i].substr(2);
             len = mc[i].length;
-            
+
             if (len === c2) {
                 if (this.comp === 1) {
                     r = parseInt("0x"+mc[i].substr(0,2), 16);
@@ -2722,7 +2722,7 @@ x3dom.fields.SFImage.prototype.toGL = function() {
     var a = [];
 
     Array.map( this.array, function(c) {
-        a.push(c);       
+        a.push(c);
     });
 
     return a;
@@ -2760,7 +2760,7 @@ x3dom.fields.MFColor.parse = function(str) {
     for (var i=0, n=mc?mc.length:0; i<n; i+=3) {
         colors.push( new x3dom.fields.SFColor(+mc[i+0], +mc[i+1], +mc[i+2]) );
     }
-    
+
     return new x3dom.fields.MFColor( colors );
 };
 
@@ -2782,7 +2782,7 @@ x3dom.fields.MFColor.prototype.toGL = function() {
     Array.map( this, function(c) {
         a.push(c.r);
         a.push(c.g);
-        a.push(c.b);        
+        a.push(c.b);
     });
 
     return a;
@@ -2814,7 +2814,7 @@ x3dom.fields.MFColorRGBA.parse = function(str) {
     for (var i=0, n=mc?mc.length:0; i<n; i+=4) {
         colors.push( new x3dom.fields.SFColorRGBA(+mc[i+0], +mc[i+1], +mc[i+2], +mc[i+3]) );
     }
-    
+
     return new x3dom.fields.MFColorRGBA( colors );
 };
 
@@ -2837,7 +2837,7 @@ x3dom.fields.MFColorRGBA.prototype.toGL = function() {
         a.push(c.r);
         a.push(c.g);
         a.push(c.b);
-        a.push(c.a);    
+        a.push(c.a);
     });
 
     return a;
@@ -2873,9 +2873,9 @@ x3dom.fields.MFRotation.parse = function(str) {
     for (var i=0, n=mc?mc.length:0; i<n; i+=4) {
         vecs.push( x3dom.fields.Quaternion.axisAngle(new x3dom.fields.SFVec3f(+mc[i+0], +mc[i+1], +mc[i+2]), +mc[i+3]) );
     }
-    
+
     // holds the quaternion representation as needed by interpolators etc.
-    return new x3dom.fields.MFRotation( vecs );    
+    return new x3dom.fields.MFRotation( vecs );
 };
 
 x3dom.fields.MFRotation.prototype.setValueByStr = function(str) {
@@ -2926,8 +2926,8 @@ x3dom.fields.MFVec3f.parse = function(str) {
     for (var i=0, n=mc?mc.length:0; i<n; i+=3) {
         vecs.push( new x3dom.fields.SFVec3f(+mc[i+0], +mc[i+1], +mc[i+2]) );
     }
-    
-    return new x3dom.fields.MFVec3f( vecs );    
+
+    return new x3dom.fields.MFVec3f( vecs );
 };
 
 x3dom.fields.MFVec3f.prototype.copy = function()
@@ -2949,7 +2949,7 @@ x3dom.fields.MFVec3f.prototype.toGL = function() {
     Array.map( this, function(c) {
         a.push(c.x);
         a.push(c.y);
-        a.push(c.z);        
+        a.push(c.z);
     });
 
     return a;
@@ -2982,7 +2982,7 @@ x3dom.fields.MFVec2f.parse = function(str) {
         vecs.push( new x3dom.fields.SFVec2f(+mc[i+0], +mc[i+1]) );
     }
 
-    return new x3dom.fields.MFVec2f( vecs );    
+    return new x3dom.fields.MFVec2f( vecs );
 };
 
 x3dom.fields.MFVec2f.prototype.copy = function() {
@@ -3002,7 +3002,7 @@ x3dom.fields.MFVec2f.prototype.toGL = function() {
 
     Array.map( this, function(v) {
         a.push(v.x);
-        a.push(v.y);    
+        a.push(v.y);
     });
 
     return a;
@@ -3034,7 +3034,7 @@ x3dom.fields.MFInt32.parse = function(str) {
     for (var i=0, n=mc?mc.length:0; i<n; ++i) {
         vals.push( parseInt(mc[i], 10) );
     }
-    
+
     return new x3dom.fields.MFInt32( vals );
 };
 
@@ -3086,8 +3086,8 @@ x3dom.fields.MFFloat.parse = function(str) {
     for (var i=0, n=mc?mc.length:0; i<n; i++) {
         vals.push( +mc[i] );
     }
-    
-    return new x3dom.fields.MFFloat( vals );    
+
+    return new x3dom.fields.MFFloat( vals );
 };
 
 x3dom.fields.MFFloat.prototype.copy = function() {
@@ -3378,21 +3378,21 @@ x3dom.fields.Line.prototype.shortestDistance = function(p)
  */
 x3dom.fields.Ray = function(pos, dir)
 {
-    if (arguments.length === 0) 
+    if (arguments.length === 0)
     {
         this.pos = new x3dom.fields.SFVec3f(0, 0, 0);
         this.dir = new x3dom.fields.SFVec3f(0, 0, 1);
-    } 
-    else 
+    }
+    else
     {
         this.pos = new x3dom.fields.SFVec3f(pos.x, pos.y, pos.z);
-        
+
         var n = dir.length();
         if (n) { n = 1.0 / n; }
-        
+
         this.dir = new x3dom.fields.SFVec3f(dir.x*n, dir.y*n, dir.z*n);
     }
-    
+
     this.enter = 0;
     this.exit  = 0;
     this.hitObject = null;
@@ -3704,7 +3704,7 @@ x3dom.fields.BoxVolume.prototype.transform = function(m)
         xmax += b;
         xmin += a;
     }
-    
+
     a = this.max.z * m._02;
     b = this.min.z * m._02;
 
@@ -3794,7 +3794,7 @@ x3dom.fields.BoxVolume.prototype.transform = function(m)
     this.min.x = xmin;
     this.min.y = ymin;
     this.min.z = zmin;
-    
+
     this.max.x = xmax;
     this.max.y = ymax;
     this.max.z = zmax;
@@ -3934,6 +3934,20 @@ x3dom.fields.BoxVolume.prototype.transformFrom = function(m, other)
     this.valid = true;
 };
 
+function _determinant(m00, m01, m02, m10, m11, m12, m20, m21, m22)
+{
+	return m00 * (m11 * m22 - m12 * m21) - m01 * (m10 * m22 - m12 * m20) + m02 * (m10 * m21 - m11 * m20);
+}
+
+function _intersectPlanes(p1, p2, p3)
+{
+	var det  = _determinant(p1.x, p1.y, p1.z, p2.x, p2.y, p2.z, p3.x, p3.y, p3.z);
+	var detx = _determinant(p1.w, p1.y, p1.z, p2.w, p2.y, p2.z, p3.w, p3.y, p3.z);
+	var dety = _determinant(p1.x, p1.w, p1.z, p2.x, p2.w, p2.z, p3.x, p3.w, p3.z);
+	var detz = _determinant(p1.x, p1.y, p1.w, p2.x, p2.y, p2.w, p3.x, p3.y, p3.w);
+
+	return new x3dom.fields.SFVec3f(detx / det, dety / det, detz / det);
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 /** FrustumVolume constructor.
@@ -3944,21 +3958,21 @@ x3dom.fields.FrustumVolume = function(clipMat)
     this.planeNormals = [];
     this.planeDistances = [];
     this.directionIndex = [];
-    
+
     if (arguments.length === 0) {
         return;
     }
-    
+
     var planeEquation = [];
-    
+
     for (var i=0; i<6; i++) {
         this.planeNormals[i] = new x3dom.fields.SFVec3f(0, 0, 0);
         this.planeDistances[i] = 0;
         this.directionIndex[i] = 0;
-        
+
         planeEquation[i] = new x3dom.fields.SFVec4f(0, 0, 0, 0);
     }
-    
+
     planeEquation[0].x = clipMat._30 - clipMat._00;
     planeEquation[0].y = clipMat._31 - clipMat._01;
     planeEquation[0].z = clipMat._32 - clipMat._02;
@@ -3988,18 +4002,18 @@ x3dom.fields.FrustumVolume = function(clipMat)
     planeEquation[5].y = clipMat._31 - clipMat._21;
     planeEquation[5].z = clipMat._32 - clipMat._22;
     planeEquation[5].w = clipMat._33 - clipMat._23;
-    
+
     for (i=0; i<6; i++) {
         var vectorLength = Math.sqrt(planeEquation[i].x * planeEquation[i].x +
                                      planeEquation[i].y * planeEquation[i].y +
                                      planeEquation[i].z * planeEquation[i].z);
-        
+
         planeEquation[i].x /=  vectorLength;
         planeEquation[i].y /=  vectorLength;
         planeEquation[i].z /=  vectorLength;
         planeEquation[i].w /= -vectorLength;
     }
-    
+
     var updateDirectionIndex = function(normalVec) {
         var ind = 0;
         if (normalVec.x > 0) ind |= 1;
@@ -4007,7 +4021,7 @@ x3dom.fields.FrustumVolume = function(clipMat)
         if (normalVec.z > 0) ind |= 4;
         return ind;
     };
-    
+
     // right
     this.planeNormals[3].setValues(planeEquation[0]);
     this.planeDistances[3] = planeEquation[0].w;
@@ -4037,6 +4051,18 @@ x3dom.fields.FrustumVolume = function(clipMat)
     this.planeNormals[1].setValues(planeEquation[5]);
     this.planeDistances[1] = planeEquation[5].w;
     this.directionIndex[1] = updateDirectionIndex(this.planeNormals[1]);
+
+	this.corners     = [];
+	
+    this.corners[0] = _intersectPlanes(planeEquation[3], planeEquation[5], planeEquation[0]);
+    this.corners[1] = _intersectPlanes(planeEquation[3], planeEquation[5], planeEquation[1]);
+    this.corners[2] = _intersectPlanes(planeEquation[3], planeEquation[4], planeEquation[0]);
+    this.corners[3] = _intersectPlanes(planeEquation[3], planeEquation[4], planeEquation[1]);
+
+    this.corners[4] = _intersectPlanes(planeEquation[2], planeEquation[5], planeEquation[0]);
+    this.corners[5] = _intersectPlanes(planeEquation[2], planeEquation[5], planeEquation[1]);
+    this.corners[6] = _intersectPlanes(planeEquation[2], planeEquation[4], planeEquation[0]);
+    this.corners[7] = _intersectPlanes(planeEquation[2], planeEquation[4], planeEquation[1]);
 };
 
 /**
@@ -4054,10 +4080,10 @@ x3dom.fields.FrustumVolume.prototype.intersect = function(vol, planeMask)
         x3dom.debug.logWarning("FrustumVolume not initialized!");
         return false;
     }
-    
+
     var that = this;
     var min = vol.min, max = vol.max;
-    
+
     var setDirectionIndexPoint = function(index) {
         var pnt = new x3dom.fields.SFVec3f(0, 0, 0);
         if (index & 1) { pnt.x = min.x; }
@@ -4068,7 +4094,7 @@ x3dom.fields.FrustumVolume.prototype.intersect = function(vol, planeMask)
         else           { pnt.z = max.z; }
         return pnt;
     };
-    
+
     //Check if the point is in the halfspace
     var pntIsInHalfSpace = function(i, pnt) {
         var s = that.planeNormals[i].dot(pnt) - that.planeDistances[i];
@@ -4086,7 +4112,7 @@ x3dom.fields.FrustumVolume.prototype.intersect = function(vol, planeMask)
         var p = setDirectionIndexPoint(that.directionIndex[i] ^ 7);
         return !pntIsInHalfSpace(i, p);
     };
-    
+
     //Check each point of the box to the 6 planes
     var mask = 1;
     if (planeMask < 0) planeMask = 0;
