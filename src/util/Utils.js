@@ -72,7 +72,8 @@ x3dom.Utils.createTexture2D = function(gl, doc, src, bgnd, crossOrigin, scale, g
 	var texture = gl.createTexture();
 
     //Create a black 4 pixel texture to prevent 'texture not complete' warning
-    var data = new Uint8Array([0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255]);
+    //var data = new Uint8Array([0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255]);
+    var data = new Uint8Array([169, 221, 238, 255, 169, 221, 238, 255, 169, 221, 238, 255, 169, 221, 238, 255,]);
     gl.bindTexture(gl.TEXTURE_2D, texture);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 2, 2, 0, gl.RGBA, gl.UNSIGNED_BYTE, data);
     if (genMipMaps) {
