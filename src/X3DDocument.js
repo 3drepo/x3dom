@@ -66,7 +66,7 @@ x3dom.X3DDocument.prototype.manageDownload = function(url, responseType, callbac
         xhr.onreadystatechange = function () {
             if ((this.status === 200) && (this.readyState === 4))
             {
-                for(var i = 0; i < that._xhrCallbacks[url].length; i++)
+                for(var i = 0; i < that._xhrCallbacks[filename].length; i++)
                 {
                     that._xhrCallbacks[filename][i](that._xhrLoads[filename]);
                 }
