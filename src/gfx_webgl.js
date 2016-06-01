@@ -3215,8 +3215,10 @@ x3dom.gfx_webgl = (function () {
                 }
                 else {
                     viewarea._pickingInfo.pickObj = null;
-                    //viewarea._pickingInfo.lastObj = null;
+                    viewarea._pickingInfo.lastObj = null;
                     viewarea._pickingInfo.lastClickObj = null;
+					viewarea._pickingInfo.pickPos = null;
+					viewarea._pickingInfo.pickNorm = null;
                 }
             }
         }
