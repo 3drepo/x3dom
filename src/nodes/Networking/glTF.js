@@ -46,6 +46,8 @@ x3dom.registerNodeType(
 			
 			this.meshMap = {};
 			
+			this.meshList = [];
+			
 			this.memoryManager = [];
 			this.memoryManagerCallback = [];
 			this.addMemoryManagerCallback = [];
@@ -206,6 +208,9 @@ x3dom.registerNodeType(
 						this._nameSpace.doc.manageDownloads(download, function() {
 							that.partitioning = JSON.parse(partitionContent._content);
 							
+							partitionContent._content = "";
+							partitionContent = {};
+							
 							// Compute bounding boxes for meshes in the tree
 							var partitioningStack = [{
 								treePointer: that.partitioning
@@ -215,21 +220,8 @@ x3dom.registerNodeType(
 							{
 								var currentProcessing = partitioningStack.splice(0,1)[0];
 								
-								if (currentProcessing.treePointer.hasOwnProperty("meshes"))
+								if (!currentProcessing.treePointer.hasOwnProperty("meshes"))
 								{
-									var currentMeshes = currentProcessing.treePointer.meshes;
-									
-									for(var meshID in currentMeshes)
-									{
-										if (currentMeshes.hasOwnProperty(meshID))
-										{
-											var min = new x3dom.fields.SFVec3f(currentMeshes[meshID].min[0], currentMeshes[meshID].min[1], currentMeshes[meshID].min[2]);
-											var max = new x3dom.fields.SFVec3f(currentMeshes[meshID].max[0], currentMeshes[meshID].max[1], currentMeshes[meshID].max[2]); 
-											
-											currentMeshes[meshID].bbox = new x3dom.fields.BoxVolume(min, max);
-										}
-									}
-								} else {
 									partitioningStack.push({
 										treePointer: currentProcessing.treePointer.left
 									});
@@ -300,6 +292,11 @@ x3dom.registerNodeType(
 						var meshID        = bufferView.extras.refID;
 						
 						this.meshMap[accessor.extras.refID] = meshID;
+						
+						if (this.meshList.indexOf(meshID) === -1)
+						{
+							this.meshList.push(meshID);
+						}
 					}
                 }
 
@@ -749,6 +746,11 @@ x3dom.registerNodeType(
 					
 					var visibleMeshes = {};
 					
+					for (var i = 0; i < this.meshList.length; i++)
+					{
+						visibleMeshes[this.meshList[i]] = {};
+					}
+					
 					var start = new Date().getTime();
 					var inverseWorldTransform = transform.inverse();
 					
@@ -823,12 +825,18 @@ x3dom.registerNodeType(
 						
 						for (var meshID in visibleMeshes[superMeshID])
 						{
+							var mesh = visibleMeshes[superMeshID][meshID];
+							var min = new x3dom.fields.SFVec3f(mesh.min[0], mesh.min[1], mesh.min[2]);
+							var max = new x3dom.fields.SFVec3f(mesh.max[0], mesh.max[1], mesh.max[2]); 
+											
+							var bbox = new x3dom.fields.BoxVolume(min, max);
+												
 							var myGraphState = {
 								needCulling: true,
 								worldVolume: new x3dom.fields.BoxVolume(),
 								boundedNode : {
 									_vf : { render: true },
-									getVolume: function() { return visibleMeshes[superMeshID][meshID].bbox; }
+									getVolume: function() { return bbox; }
 								}
 							};
 							
@@ -839,7 +847,7 @@ x3dom.registerNodeType(
 								visibleMeshInfo[superMeshID][meshID] = {
 									id: meshID,
 									size: myGraphState.coverage,
-									distance: drawableCollection.viewMatrix.e3().subtract(visibleMeshes[superMeshID][meshID].bbox.center).length()
+									distance: drawableCollection.viewMatrix.e3().subtract(bbox.center).length()
 								};
 							}
 						}			
