@@ -277,8 +277,8 @@ x3dom.Viewarea.prototype.navigateTo = function(timeStamp)
     };
 
     // slightly increasing slope function
-    var humanizeDiff = function(scale, diff) {
-        return ((diff < 0) ? -1 : 1 ) * Math.pow(scale * Math.abs(diff), 1.65 /*lower is easier on the novice*/);
+	function humanizeDiff(scale, diff, factor) {
+        return ((diff < 0) ? -1 : 1 ) * Math.pow(scale * Math.abs(diff), factor /*lower is easier on the novice*/);
     };
 
     if (needNavAnim)
@@ -321,8 +321,11 @@ x3dom.Viewarea.prototype.navigateTo = function(timeStamp)
         var rdeltaX = removeZeroMargin((this._pressX - this._lastX) / screenSize, 0.01);
         var rdeltaY = removeZeroMargin((this._pressY - this._lastY) / screenSize, 0.01);
 
-        var userXdiff = humanizeDiff(1, rdeltaX);
-        var userYdiff = humanizeDiff(1, rdeltaY);
+        var userXdiff = humanizeDiff(1, rdeltaX, 3.0);
+        var userYdiff = humanizeDiff(1, rdeltaY, 3.0);
+
+		var userXdiffOther = humanizeDiff(1, rdeltaX, 2.0);
+		var userYdiffOther = humanizeDiff(1, rdeltaY, 2.0);
 
         // check if forwards or backwards (on right button)
         var step = (this._lastButton & 2) ? -1 : 1;
@@ -449,13 +452,18 @@ x3dom.Viewarea.prototype.navigateTo = function(timeStamp)
 
             var sideStep = 0;
 
+			// factor in delta time and the nav speed setting
+			userXstep = this._deltaT * navi._vf.speed * userXdiffOther;
+			userYstep = this._deltaT * navi._vf.speed * userYdiffOther;
+
             if (this._lastButton & 2 || this._lastButton & 4) // up/down levelling
             {
+				userYstep = this._deltaT * navi._vf.speed * userYdiff;
                 var stepUp = 200 * userYstep;
                 typeParams[1] += stepUp;
                 navi.setTypeParams(typeParams);
                 phi = 0.0;
-		sideStep = -200 * userXstep;
+				sideStep = -200 * userXstep;
             }
 
             if (this._lastButton & 1) {  // forward/backward motion
@@ -571,7 +579,9 @@ x3dom.Viewarea.prototype.navigateTo = function(timeStamp)
                 }
             }
 
-            lv = this._at.subtract(this._from).normalize().multiply(step);
+            lv = this._at.subtract(this._from).normalize();
+			lv = lv.subtract(lv.multiply(lv.dot(new x3dom.fields.SFVec3f(0.0,1.0,0.0))));
+			lv = lv.multiply(step);
 
             this._at = this._at.add(lv);
             this._from = this._from.add(lv);
@@ -597,7 +607,23 @@ x3dom.Viewarea.prototype.navigateTo = function(timeStamp)
                 }
             }
             this._pickingInfo.pickObj = null;
-        }
+
+			if (Math.abs(lv.z) > Number.EPSILON)
+			{
+				up.x = (up.z * lv.x) / lv.z;
+			} else if (Math.abs(lv.x) > Number.EPSILON) {
+				up.z = (up.x * lv.z) / lv.x;
+			} else {
+				up = new x3dom.fields.SFVec3F(0.0, 1.0, 0.0);
+			}
+		}
+
+		console.log("UP: " + up.toGL());
+
+		if(up.y < 0.0)
+		{
+			debugger;
+		}
 
         this._flyMat = x3dom.fields.SFMatrix4f.lookAt(this._from, this._at, up);
 

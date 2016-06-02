@@ -8,8 +8,8 @@
  * Based on code originally provided by
  * Philip Taylor: http://philip.html5.org
  */
- 
- 
+
+
  /**
  * Class: x3dom.DownloadManager
  *
@@ -17,52 +17,74 @@
  * Before objects of priority n+1 are available,
  * all objects of priority n must have been already delivered.
  * The highest priority key is 0.
- * 
+ *
  */
 
 /// a small Request class
 var Request = function(url, onloadCallback, priority){
-	this.url 	  		     = url;	
+	this.url 	  		     = url;
 	this.priority 		   = priority;
 	this.xhr 	  		     = new XMLHttpRequest();
 	this.onloadCallbacks = [onloadCallback];
-	
+
 	var self = this;
 
-	this.xhr.onload = function() {		
+	if (window.hostAlias)
+	{
+		for(var host in window.hostAlias)
+		{
+			var hostString = "{" + host + "}";
+
+			if (window.hostAlias[host] instanceof Function)
+			{
+				// If the supplied host alias is a function
+				// then we need to extract the path to pass to
+				// it
+
+				var hostIndex = url.indexOf(hostString); // Should be zero
+				var path = url.substring(hostIndex + hostString.length);
+
+				url = window.hostAlias[host](path);
+			} else {
+				url = url.replace(hostString, window.hostAlias[host]);
+			}
+		}
+	}
+
+	this.xhr.onload = function() {
 		if (x3dom.DownloadManager.debugOutput) {
 			x3dom.debug.logInfo('Download manager received data for URL \'' + self.url + '\'.');
 		}
-		
+
 		--x3dom.DownloadManager.activeDownloads;
-	
+
     if ((x3dom.DownloadManager.stallToKeepOrder === false ) || (x3dom.DownloadManager.resultGetsStalled(self.priority) === false)) {
       var i;
-      for (i = 0; i < self.onloadCallbacks.length; ++i) {			
+      for (i = 0; i < self.onloadCallbacks.length; ++i) {
         self.onloadCallbacks[i](self.xhr.response);
       }
-      
+
       x3dom.DownloadManager.removeDownload(self);
-      
+
       x3dom.DownloadManager.updateStalledResults();
     }
     else if (x3dom.DownloadManager.debugOutput) {
 			x3dom.debug.logInfo('Download manager stalled downloaded result for URL \'' + self.url + '\'.');
 		}
-    
+
 		x3dom.DownloadManager.tryNextDownload();
 	};
 };
 
 
 Request.prototype.send = function() {
-	this.xhr.open('GET', encodeURI(this.url), true); //asynchronous	
-	
+	this.xhr.open('GET', encodeURI(this.url), true); //asynchronous
+
 	//at the moment, ArrayBuffer is the only possible return type
 	this.xhr.responseType = 'arraybuffer';
-	
+
 	this.xhr.send(null);
-	
+
 	if (x3dom.DownloadManager.debugOutput) {
 		x3dom.debug.logInfo('Download manager posted XHR for URL \'' + this.url + '\'.');
 	}
@@ -83,7 +105,7 @@ stallToKeepOrder : false,
 
 
 toggleDebugOutput : function(flag) {
-	this.debugOutput = flag;	
+	this.debugOutput = flag;
 },
 
 
@@ -98,8 +120,8 @@ removeDownload : function(req) {
 	var i, j;
 	var done = false;
 
-	for (i = 0; i < this.requests.length && !done; ++i) {	
-		if (this.requests[i]){			
+	for (i = 0; i < this.requests.length && !done; ++i) {
+		if (this.requests[i]){
 			for (j = 0; j < this.requests[i].length; ++j) {
 				if (this.requests[i][j] === req) {
 					this.requests[i].splice(j, 1);
@@ -115,27 +137,27 @@ removeDownload : function(req) {
 tryNextDownload : function() {
 	var firstRequest;
 	var i, j;
-		
+
 	//if there are less then maxDownloads running, start a new one,
 	//otherwise do nothing
-	if (this.activeDownloads < this.maxDownloads) {	
+	if (this.activeDownloads < this.maxDownloads) {
 		//remove first queue element, if any
 		for (i = 0; i < this.requests.length && !firstRequest; ++i) {
 			//find the request queue with the highest priority
 			if (this.requests[i]) {
 				//remove first unsent request from the queue, if any
-				for (j = 0; j < this.requests[i].length; ++j) {					
+				for (j = 0; j < this.requests[i].length; ++j) {
 					if (this.requests[i][j].xhr.readyState === XMLHttpRequest.UNSENT) {
 						firstRequest = this.requests[i][j];
-						break;						
+						break;
 					}
 				}
 			}
 		}
-		
-		if (firstRequest) {		
-			firstRequest.send();			
-			
+
+		if (firstRequest) {
+			firstRequest.send();
+
 			++this.activeDownloads;
 		}
 	}
@@ -144,49 +166,49 @@ tryNextDownload : function() {
 
 resultGetsStalled : function(priority) {
   var i;
-  
+
   for (i = 0; i < priority; ++i) {
     if (this.requests[i] && this.requests[i].length) {
       return true;
     }
   }
-  
+
   return false;
 },
 
 
 updateStalledResults : function() {
-  if (x3dom.DownloadManager.stallToKeepOrder) {  
+  if (x3dom.DownloadManager.stallToKeepOrder) {
     var i, j, k;
     var req, pendingRequestFound = false;
-    
+
     for (i = 0; i < this.requests.length && !pendingRequestFound; ++i) {
-    
+
       if (this.requests[i]) {
         for (j = 0; j < this.requests[i].length; ++j) {
           //check if there is a stalled result and relase it, if so
           req = this.requests[i][j];
-          
+
           if (req.xhr.readyState === XMLHttpRequest.DONE) {
-          
+
             if (x3dom.DownloadManager.debugOutput) {
               x3dom.debug.logInfo('Download manager releases stalled result for URL \'' + req.url + '\'.');
             }
-            
+
             for (k = 0; k < req.onloadCallbacks.length; ++k) {
               req.onloadCallbacks[k](req.xhr.response);
             }
-            
+
             //remove request from the list
-            this.requests[i].splice(j, 1);          
+            this.requests[i].splice(j, 1);
           }
           //if there is an unfinished result, stop releasing results of lower priorities
           else {
-            pendingRequestFound = true;	
+            pendingRequestFound = true;
           }
         }
       }
-      
+
     }
   }
 },
@@ -197,7 +219,7 @@ updateStalledResults : function() {
  * The callback function will be invoked with a JSON object as parameter, where the
  * 'arrayBuffer' member contains a reference to the requested data and the 'url' member
  * contains the original user-given URL of the object.
- * 
+ *
  * If there is no data from the given url available, but there is already a registered request
  * for it, the new callback is just appended to the old registered request object. Note that,
  * in this special case, the priority of the old request is not changed, i.e. the priority
@@ -207,13 +229,13 @@ get : function(urls, onloadCallbacks, priorities) {
   var i, j, k, r;
   var found = false;
   var url, onloadCallback, priority;
-  
+
   if (urls.length !== onloadCallbacks.length || urls.length !== priorities.length)
   {
     x3dom.debug.logError('DownloadManager: The number of given urls, onload callbacks and priorities is not equal. Ignoring requests.');
     return;
   }
-  
+
   //insert requests
   for (k = 0; k < urls.length; ++k) {
     if (!onloadCallbacks[k] === undefined || !priorities[k] === undefined) {
@@ -224,30 +246,30 @@ get : function(urls, onloadCallbacks, priorities) {
       url            = urls[k];
       onloadCallback = onloadCallbacks[k];
       priority       = priorities[k];
-      
-      //enqueue request priority-based or append callback to a matching active request		
-      
+
+      //enqueue request priority-based or append callback to a matching active request
+
       //check if there is already an enqueued or sent request for the given url
       for (i = 0; i < this.requests.length && !found; ++i) {
-        if (this.requests[i]) {			
+        if (this.requests[i]) {
           for (j = 0; j < this.requests[i].length; ++j) {
             if (this.requests[i][j].url === url) {
               this.requests[i][j].onloadCallbacks.push(onloadCallback);
-              
+
               if (x3dom.DownloadManager.debugOutput) {
                 x3dom.debug.logInfo('Download manager appended onload callback for URL \'' + url + '\' to a registered request using the same URL.');
               }
-              
+
               found = true;
               break;
             }
           }
         }
       }
-    
+
       if (!found) {
         r = new Request(url, onloadCallback, priority);
-        
+
         if (this.requests[priority]) {
           this.requests[priority].push(r);
         }
@@ -257,11 +279,11 @@ get : function(urls, onloadCallbacks, priorities) {
       }
     }
   }
-  
+
   //try to download data
   for (i = 0; i < urls.length && this.activeDownloads < this.maxDownloads; ++i) {
-    this.tryNextDownload();    
+    this.tryNextDownload();
   }
 }
-	
+
 };

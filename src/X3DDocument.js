@@ -77,13 +77,18 @@ x3dom.X3DDocument.prototype.manageDownload = function(url, responseType, callbac
 {
 	var that = this;
 
-    if (!that._xhrLoads[url])
+	// From the RFC
+    var pattern = RegExp("^(([^:/?#]+):)?(//([^/?#]*))?([^?#]*)(\\?([^#]*))?(#(.*))?");
+    var matches =  url.match(pattern);
+	var filename = matches[5];
+
+    if (!that._xhrLoads[filename])
     {
         //post request
         xhr = new XMLHttpRequest();
 
-        that._xhrLoads[url] = xhr;
-        that._xhrCallbacks[url] = [];
+        that._xhrLoads[filename] = xhr;
+        that._xhrCallbacks[filename] = [];
         xhr.open("GET", url, true);
 
         xhr.responseType = responseType;
@@ -93,19 +98,19 @@ x3dom.X3DDocument.prototype.manageDownload = function(url, responseType, callbac
         xhr.onreadystatechange = function () {
             if ((this.status === 200) && (this.readyState === 4))
             {
-                for(var i = 0; i < that._xhrCallbacks[url].length; i++)
+                for(var i = 0; i < that._xhrCallbacks[filename].length; i++)
                 {
-                    that._xhrCallbacks[url][i](that._xhrLoads[url]);
+                    that._xhrCallbacks[filename][i](that._xhrLoads[filename]);
                 }
             }
         };
     }
 
-    if (!((that._xhrLoads[url].status == 200) && (that._xhrLoads[url].readyState == 4)))
+    if (!((that._xhrLoads[filename].status === 200) && (that._xhrLoads[filename].readyState === 4)))
     {
-        that._xhrCallbacks[url].push(callback);
+        that._xhrCallbacks[filename].push(callback);
     } else {
-        callback(that._xhrLoads[url]);
+        callback(that._xhrLoads[filename]);
     }
 };
 

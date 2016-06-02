@@ -63,10 +63,36 @@ x3dom.NodeNameSpace.prototype.setBaseURL = function (url) {
 };
 
 x3dom.NodeNameSpace.prototype.getURL = function (url) {
+
     if (url === undefined || !url.length) {
         return "";
     }
     else {
+		if (window.hostAlias)
+		{
+			for(var host in window.hostAlias)
+			{
+				var hostString = "{" + host + "}";
+
+				if (window.hostAlias[host] instanceof Function)
+				{
+					// If the supplied host alias is a function
+					// then we need to extract the path to pass to
+					// it
+
+					var hostIndex = url.indexOf(hostString); // Should be zero
+
+					if (hostIndex !== -1)
+					{
+						var path = url.substring(hostIndex + hostString.length);
+						url = window.hostAlias[host](path);
+					}
+				} else {
+					url = url.replace(hostString, window.hostAlias[host]);
+				}
+			}
+		}
+
         return ((url[0] === '/') || (url.indexOf(":") >= 0)) ? url : (this.baseURL + url);
     }
 };
