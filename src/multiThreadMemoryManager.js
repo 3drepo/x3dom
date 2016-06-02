@@ -411,20 +411,24 @@ function _addQueuePerformReindexing(ctx, memory, counter, submesh, segmentName)
 	counter.maxIndex = counter.maxIndex + submesh.numIndex;
 }
 
+var segmentNames, firstMesh, meshid, submesh, ctx, segmentName;
+var memory, removeQueue, addQueue, counter, visibilityMap;
+var meshIDs, mesh, i;
+
 function processQueue() {
 	"use asm";
 	
-	for (var mesh in meshesMemory)
+	for (mesh in meshesMemory)
 	{
-		var memory      = meshesMemory[mesh];
-		var removeQueue = meshesRemoveQueue[mesh];
-		var addQueue    = meshesAddQueue[mesh];
-		var counter     = meshesCounters[mesh];
-		var visibilityMap = meshesVisibilityMap[mesh];
+		memory      = meshesMemory[mesh];
+		removeQueue = meshesRemoveQueue[mesh];
+		addQueue    = meshesAddQueue[mesh];
+		counter     = meshesCounters[mesh];
+		visibilityMap = meshesVisibilityMap[mesh];
 					
 		if (visibleMeshIDsChanged[mesh])
 		{
-			var meshIDs = visibleMeshIDs[mesh];
+			meshIDs = visibleMeshIDs[mesh];
 			
 			visibleMeshIDsChanged[mesh] = false;
 			
@@ -434,7 +438,7 @@ function processQueue() {
 			
 		if (returned[mesh])
 		{			
-			var segmentNames, firstMesh, meshid, submesh, ctx, segmentName;
+
 
 			/*		
 			if (addQueue.length || removeQueue.length)
@@ -461,7 +465,7 @@ function processQueue() {
 				visibilityMap[meshid] = false;
 				
 				// Cut submesh out of buffer
-				for (var i = 0; i < segmentNames.length; i++)
+				for (i = 0; i < segmentNames.length; i++)
 				{
 					segmentName = segmentNames[i];
 					ctx = {};
@@ -499,7 +503,7 @@ function processQueue() {
 				// Now visible
 				visibilityMap[meshid] = true;
 				
-				for (var i = 0; i < segmentNames.length; i++)
+				for (i = 0; i < segmentNames.length; i++)
 				{
 					segmentName = segmentNames[i];					
 					ctx = {};
