@@ -2,6 +2,7 @@
     "grouplist":[
         {"group": "BASICS",
             "data": [
+				{"path": "json_parse.js"},
                 {"path": "lang/Array.js"},
                 {"path": "Internals.js"},
                 {"path": "debug.js"},
@@ -169,6 +170,7 @@
                 ]},
                 {"name": "Networking", "filePrefix": "nodes/Networking/", "files":[
                     {"file": "Anchor.js"},
+					{"file": "glTFSpec.js"},
                     {"file": "glTF.js"},
                     {"file": "Inline.js"},
                     {"file": "MultiPart.js"}

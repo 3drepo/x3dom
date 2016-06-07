@@ -39,35 +39,38 @@ x3dom.registerNodeType(
              * @instance
              */
             this.addField_MFString(ctx, 'url', []);
-			
+
 			this.partitioning = undefined;
-			
+
 			this.geometryNodes = [];
-			
+
+			this.visibleMeshes = {};
+			this.visibleMeshInfo = {};
+
 			this.meshMap = {};
-			
+
 			this.meshList = [];
-			
+
 			this.memoryManager = [];
 			this.memoryManagerCallback = [];
 			this.addMemoryManagerCallback = [];
-				
+
 			var that = this;
-			
+
 			that.N_THREADS = 1;
-			
+
 			for (var n = 0;n < that.N_THREADS; n++)
 			{
 				this.memoryManager[n] = new Worker("public/js/external/multiThreadMemoryManager.js");
 				this.memoryManagerCallback[n] = [];
-							
+
 				this.addMemoryManagerCallback.push((function(n) {
 					return function (callback)
 					{
 						that.memoryManagerCallback[n].push(callback);
 					};
 				})(n));
-			
+
 				this.memoryManager[n].onmessage = (function(n) {
 					return function(event) {
 						for (var i = 0; i < that.memoryManagerCallback[n].length; i++)
@@ -110,7 +113,7 @@ x3dom.registerNodeType(
                     this._nameSpace.setBaseURL(that._path);
 
                     //TODO: does this work for embedded (data:) uris?
-                    this._nameSpace.doc.manageDownload(uri, "text", function(xhr) {
+                    this._nameSpace.doc.manageDownload(uri, "arraybuffer", function(xhr) {
                         that._onceLoaded(xhr);
                     });
                 }
@@ -127,7 +130,9 @@ x3dom.registerNodeType(
 
                 // set up the objects gltf specific properties
                 that._gltf = {};
-                that._gltf._header = JSON.parse(xhr.responseText);
+
+				that._gltf._header = new glTFHeader(json_parse(new Uint8Array(xhr.response)));
+				xhr = undefined;
 
                 var header = that._gltf._header;
 
@@ -153,7 +158,8 @@ x3dom.registerNodeType(
                             var download = {
                                 uri : that._nameSpace.getURL(x3domShader.uri),
                                 responseType : "text",
-                                destination : x3domShader
+                                destination : x3domShader,
+								clearLoad: true
                             };
                             downloads.push(download);
                         }
@@ -191,47 +197,37 @@ x3dom.registerNodeType(
 
 			_getPartitioningInfo: function(scene) {
 				var that = this;
-				var partitionContent = {};
-								
+
 				if (scene.hasOwnProperty("extras"))
 				{
 					if (scene.extras.hasOwnProperty("partitioning"))
 					{
 						var uri = scene.extras.partitioning.uri;
-								
-						var download = [{
-							uri: uri,
-							responseType: "text",
-							destination: partitionContent
-						}];
-						
-						this._nameSpace.doc.manageDownloads(download, function() {
-							that.partitioning = JSON.parse(partitionContent._content);
-							
-							partitionContent._content = "";
-							partitionContent = {};
-							
+
+						this._nameSpace.doc.manageDownload(uri, "arraybuffer", function(xhr) {
+							that.partitioning = new glTFPartitioning(json_parse(new Uint8Array(xhr.response)));
+
 							// Compute bounding boxes for meshes in the tree
 							var partitioningStack = [{
 								treePointer: that.partitioning
 							}];
-							
+
 							while(partitioningStack.length)
 							{
 								var currentProcessing = partitioningStack.splice(0,1)[0];
-								
+
 								if (!currentProcessing.treePointer.hasOwnProperty("meshes"))
 								{
 									partitioningStack.push({
 										treePointer: currentProcessing.treePointer.left
 									});
-									
+
 									partitioningStack.push({
 										treePointer: currentProcessing.treePointer.right
-									});									
+									});
 								}
 							}
-						});
+						}, true);
 					}
 				}
 			},
@@ -280,22 +276,24 @@ x3dom.registerNodeType(
                 if(gltfNode.meshes) {
 					for(var i = 0; i < gltfNode.meshes.length; i++)
 					{
-						var mmIDX = i % that.N_THREADS;
+						var meshID = gltfNode.meshes[i];
+						var mesh   = header.meshes[meshID];
+						var mmIDX  = i % that.N_THREADS;
+
                         newNode.appendChild(that._createShapeNode(sceneDoc, gltfNode.meshes[i], context, mmIDX));
-                    }
-					
-					for (var accKey in header.accessors)
-					{
-						var accessor      = header.accessors[accKey];
-						var bufferViewKey = accessor.bufferView;
-						var bufferView    = header.bufferViews[bufferViewKey];
-						var meshID        = bufferView.extras.refID;
-						
-						this.meshMap[accessor.extras.refID] = meshID;
-						
-						if (this.meshList.indexOf(meshID) === -1)
+
+						this.meshList.push(meshID);
+
+						for(var pIDX in mesh.primitives)
 						{
-							this.meshList.push(meshID);
+							var primitive = mesh.primitives[pIDX];
+
+							if(primitive.extras && primitive.extras.refID)
+							{
+								var submeshID = primitive.extras.refID;
+
+								this.meshMap[submeshID] = meshID;
+							}
 						}
 					}
                 }
@@ -323,7 +321,7 @@ x3dom.registerNodeType(
                 var shapeNode = sceneDoc.createElement("Shape");
 
                 // create and apply the gltfgeometry node as the geometry part of the shape
-				
+
                 geometryNode = sceneDoc.createElement("glTFGeometry");
                 geometryNode.setAttribute("url", that._uri);
                 geometryNode.setAttribute("mesh", meshname);
@@ -335,7 +333,7 @@ x3dom.registerNodeType(
 				geometryNode.memoryManager = that.memoryManager[mmIDX];
 
                 shapeNode.appendChild(geometryNode);
-				
+
 				this.geometryNodes.push(geometryNode);
 
                 // check if this is the start of a multipart subgraph. if so, put the subgrpah we just created inside a
@@ -364,7 +362,7 @@ x3dom.registerNodeType(
                     };
                     that._addMeshToIdMap(meshname, multipartNode._idMap);
                     multipartNode._inlScene = shapeNode;
-                    		
+
                     multipartNode.onclick = this._xmlNode.onclick;
 
                     shapeNode = multipartNode;
@@ -725,112 +723,108 @@ x3dom.registerNodeType(
                         return "mat4";
                 }
             },
-			
+
 			collectDrawableObjects: function (transform, drawableCollection, singlePath, invalidateCache, planeMask, clipPlanes)
             {
 				var that = this;
-				
-				//console.log("CHANGE VISIBILITY");
-				
+
 				if (this.partitioning)
 				{
 					var originalBoundingBox = this.graphState().worldVolume;
 					var treeStack = [this.partitioning]; // Stack containing parts of the tree ready to process
-				
+
 					var _setAxisValue = function(axis, vec, value)
 					{
 						if (axis === "X") { vec.x = value; }
 						else if (axis === "Y") { vec.y = value; }
 						else if (axis === "Z") { vec.z = value; }
 					};
-					
-					var visibleMeshes = {};
-					
+
 					for (var i = 0; i < this.meshList.length; i++)
 					{
-						visibleMeshes[this.meshList[i]] = {};
+						that.visibleMeshes[this.meshList[i]] = {};
 					}
-					
+
 					var start = new Date().getTime();
 					var inverseWorldTransform = transform.inverse();
-					
+
 					var frustumCorners = drawableCollection.viewFrustum.corners;
-					
+
 					// Applying the inverse transform to the view
-					// frustum should allow to cull in an axis aligned 
+					// frustum should allow to cull in an axis aligned
 					// manner.
 					var min = inverseWorldTransform.multMatrixPnt(frustumCorners[0]).toGL();
 					var max = inverseWorldTransform.multMatrixPnt(frustumCorners[0]).toGL();
-					
+
 					for (var i = 1; i < frustumCorners.length; i++)
 					{
 						var vec = inverseWorldTransform.multMatrixPnt(frustumCorners[i]).toGL();
-						
+
 						for(var j = 0; j < min.length; j++)
 						{
 							if (min[j] > vec[j]) min[j] = vec[j];
 							if (max[j] < vec[j]) max[j] = vec[j];
 						}
 					}
-					
+
 					var indexMap = { "X" : 0, "Y" : 1, "Z" : 2 };
-					
+
 					// Loop through the children elements and cull those from the
 					// multipart generation
 					while(treeStack.length)
 					{
 						var currentProcessing = treeStack.shift();
-						
+
 						if (currentProcessing.hasOwnProperty("meshes"))
 						{
 							var currentVisibleMeshes = currentProcessing.meshes;
-							
+
 							for (var meshID in currentVisibleMeshes)
 							{
-								if (!visibleMeshes.hasOwnProperty(meshID) && currentVisibleMeshes.hasOwnProperty(meshID))
+								if (!that.visibleMeshes.hasOwnProperty(meshID) && currentVisibleMeshes.hasOwnProperty(meshID))
 								{
 									var superMeshID = this.meshMap[meshID];
-									
-									if (!visibleMeshes[superMeshID])
+
+									if (!that.visibleMeshes[superMeshID])
 									{
-										visibleMeshes[superMeshID] = {};
+										that.visibleMeshes[superMeshID] = {};
 									}
-									
-									visibleMeshes[superMeshID][meshID] = currentVisibleMeshes[meshID];
+
+									that.visibleMeshes[superMeshID][meshID] = currentVisibleMeshes[meshID];
 								}
-							} 
+							}
 
 						} else {
 							var index = indexMap[currentProcessing.axis];
 							var axisValue = currentProcessing.value;
-							
+
 							if ((axisValue > min[index]) && (axisValue < max[index]))
 							{
-								treeStack.push(currentProcessing.left);														
+								treeStack.push(currentProcessing.left);
 								treeStack.push(currentProcessing.right);
 							} else if ((axisValue > min[index]) && (axisValue > max[index])) {
 								treeStack.push(currentProcessing.left);
 							} else if ((axisValue < min[index]) && (axisValue < max[index])) {
 								treeStack.push(currentProcessing.right);
-							}						
+							}
 						}
 					}
-					
-					var visibleMeshInfo = {};
-					
+
+					that.visibleMeshInfo = {};
+
 					// Refined mesh culling
-					for(var superMeshID in visibleMeshes)
+					for(var superMeshID in that.visibleMeshes)
 					{
-						visibleMeshInfo[superMeshID] = {};
-						
-						for (var meshID in visibleMeshes[superMeshID])
+						that.visibleMeshInfo[superMeshID] = {};
+
+						for (var meshID in that.visibleMeshes[superMeshID])
 						{
-							var mesh = visibleMeshes[superMeshID][meshID];
+							var mesh = that.visibleMeshes[superMeshID][meshID];
 							var min = new x3dom.fields.SFVec3f(mesh.min[0], mesh.min[1], mesh.min[2]);
-							var max = new x3dom.fields.SFVec3f(mesh.max[0], mesh.max[1], mesh.max[2]); 
-											
+							var max = new x3dom.fields.SFVec3f(mesh.max[0], mesh.max[1], mesh.max[2]);
+
 							var bbox = new x3dom.fields.BoxVolume(min, max);
-												
+
 							var myGraphState = {
 								needCulling: true,
 								worldVolume: new x3dom.fields.BoxVolume(),
@@ -839,33 +833,33 @@ x3dom.registerNodeType(
 									getVolume: function() { return bbox; }
 								}
 							};
-							
+
 							var subMeshPlaneMask = drawableCollection.cull(transform, myGraphState, singlePath, planeMask);
-								
+
 							if (subMeshPlaneMask >= 0)
 							{
-								visibleMeshInfo[superMeshID][meshID] = {
+								that.visibleMeshInfo[superMeshID][meshID] = {
 									id: meshID,
 									size: myGraphState.coverage,
 									distance: drawableCollection.viewMatrix.e3().subtract(bbox.center).length()
 								};
 							}
-						}			
+						}
 					}
-					
+
 					var end = new Date().getTime();
 					var time = end - start;
 					//console.log('Execution time: ' + time);
 					//console.log("LEN: " + Object.keys(visibleMeshes).length);
-					
+
 					for(var i = 0; i < this.geometryNodes.length; i++)
 					{
 						var geomNode   = this.geometryNodes[i];
 						var geomNodeID = geomNode.getAttribute("DEF")
-						geomNode._x3domNode.changeVisibility(visibleMeshInfo[geomNodeID]);
+						geomNode._x3domNode.changeVisibility(that.visibleMeshInfo[geomNodeID]);
 					}
 				}
-				
+
                 // check if multi parent sub-graph, don't cache in that case
                 if (singlePath && (this._parentNodes.length > 1))
                     singlePath = false;

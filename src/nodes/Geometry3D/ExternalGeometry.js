@@ -151,7 +151,7 @@ x3dom.registerNodeType(
                             srcHeaderObj += String.fromCharCode(srcHeaderView[i]);
                         }
 
-                        srcHeaderObj = JSON.parse(srcHeaderObj);
+                        srcHeaderObj = json_parse(srcHeaderObj);
                     }
                     catch (exc)
                     {

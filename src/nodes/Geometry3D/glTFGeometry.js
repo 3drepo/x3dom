@@ -98,10 +98,12 @@ x3dom.registerNodeType(
             //caches the gltf buffers
             this._bufferData = {};
 
+			this.bufferContents = null;
+
             this._bufferViewGLBuffers = {};
-			
+
             this.memoryManagerRegistered = false;
-			
+
 	    this.myMeshes      = [];
             this.visibleMeshes = [];
         },
@@ -136,7 +138,7 @@ x3dom.registerNodeType(
                         that.gltfHeaderBaseURI = that._xmlNode.gltfHeaderBaseURI;
                     }
                 }
-				
+
 				if (that._xmlNode)
 				{
 					that.addMemoryManagerCallback = this._xmlNode.addMemoryManagerCallback;
@@ -366,7 +368,7 @@ x3dom.registerNodeType(
                 shape._nameSpace.doc.needRender = true;
 
                 x3dom.BinaryContainerLoader.checkError(gl);
-				
+
 				that._setBoundingBox(that.gltfHeader, [primitive]);
             },
 
@@ -378,10 +380,10 @@ x3dom.registerNodeType(
 
                 var that = this;
 				var header = that.gltfHeader;
-				
+
                 that._bufferDownloadCompleteCallback = callback;
 
-				// First check whether or not there are 
+				// First check whether or not there are
 				// bufferviews attached for this mesh
 				that._bufferViews = [];
 				var bufferView;
@@ -391,7 +393,7 @@ x3dom.registerNodeType(
 					if (header.bufferViews.hasOwnProperty(k))
 					{
 						bufferView = header.bufferViews[k];
-						
+
 						if (bufferView.extras.refID === that._DEF)
 						{
 							bufferView.key = k;
@@ -399,15 +401,15 @@ x3dom.registerNodeType(
 						}
 					}
 				}
-				
+
 				if (that._bufferViews.length)
 				{
 					var bufferViews = {};
 					bufferViews[INDEX_TARGET] = {};
 					bufferViews[ATTRIBUTE_TARGET] = {};
-					
+
 					var bufferView;
-					
+
 					// If we have buffew views then load then singularly.
 					for (var bufferViewID in that._bufferViews)
 					{
@@ -417,24 +419,24 @@ x3dom.registerNodeType(
 							var bufferId = bufferView.buffer;
 							var buffer = that.gltfHeader.buffers[bufferId];
 							var target = bufferView.target;
-																											
+
 							if (!bufferViews[target].hasOwnProperty(bufferId))
 							{
 								bufferViews[target][bufferId] = { byteArray: [], bufferViews: [] };
 							}
-							
+
 							bufferViews[target][bufferId].byteArray.push([bufferView.byteOffset, bufferView.byteOffset + bufferView.byteLength]);
 							bufferViews[target][bufferId].bufferViews.push(bufferView);
 						}
 					}
-					
+
 					var hasPopBuffers = true;
-					
+
 					// Detect whether or not this is POP buffer compatible
 					for (var accID in that.gltfHeader.accessors)
 					{
 						var accessor = that.gltfHeader.accessors[accID];
-						
+
 						if (true || !accessor.extras.lodRef)
 						{
 							hasPopBuffers = false;
@@ -443,57 +445,57 @@ x3dom.registerNodeType(
 							var bufferViewID = accessor.bufferView;
 							var bufferView   = that.gltfHeader.bufferViews[bufferViewID];
 							var bufferId     = bufferView.buffer;
-							
+
 							if (!bufferViews[INDEX_TARGET][bufferId].popBufferByteArray)
 							{
 								bufferViews[INDEX_TARGET][bufferId].popBufferByteArray = [];
 								bufferViews[INDEX_TARGET][bufferId].popBufferAccessors = [];
 							}
-							
+
 							var popBufferByteArray = bufferViews[INDEX_TARGET][bufferId].popBufferByteArray;
 							var popBufferAccessors = bufferViews[INDEX_TARGET][bufferId].popBufferAccessors;
-							
+
 							var submeshStart = null;
-							
+
 							for(var l = 0; l < accessor.extras.lodRef.length; l++)
 							{
 								var lodRef = accessor.extras.lodRef[l];
-								
+
 								if (!popBufferByteArray[l])
 								{
 									popBufferByteArray[l] = [];
 								}
-								
+
 								if (!submeshStart)
 								{
 									submeshStart = accessor.byteOffset + bufferView.byteOffset;
 								} else {
-									submeshStart = submeshEnd;	
+									submeshStart = submeshEnd;
 								}
-								
+
 								var submeshEnd   = submeshStart + (lodRef * 2);
 								popBufferByteArray[l].push([submeshStart, submeshEnd]);
 							}
-							
+
 							popBufferAccessors.push(accessor);
 						}
 					}
-										
+
 					for (var target in bufferViews)
 					{
 						var targetBufferViews = bufferViews[target];
-						
+
 						for (var bufferId in targetBufferViews)
 						{
 							var buffer = that.gltfHeader.buffers[bufferId];
 							var myBufferViews = targetBufferViews[bufferId].bufferViews;
-							
+
 							for (var i = 0; i < myBufferViews.length; i++)
 							{
 								bufferView = myBufferViews[i];
 								bufferView.type    = buffer.type;
 								bufferView.content = null;
-								bufferView.done    = false;								
+								bufferView.done    = false;
 							}
 
 							if (targetBufferViews[bufferId].popBufferByteArray && target == INDEX_TARGET)
@@ -501,18 +503,18 @@ x3dom.registerNodeType(
 								var targetPopBufferByteArray = targetBufferViews[bufferId].popBufferByteArray;
 								var numLods = targetPopBufferByteArray.length;
 								var bufferURIs = [];
-									
+
 								for (var l = 0; l < numLods; l++)
 								{
 									bufferURIs[l] = that._nameSpace.getURL(buffer.uri) + "?bytes=" + JSON.stringify(targetPopBufferByteArray[l]);
 								}
-								
+
 								var startDownload = function(myBufferViews, l) {
 									if (!bufferURIs[l + 1])
 									{
 										myBufferViews[0].done = true;
 									}
-									
+
 									if (bufferURIs[l])
 									{
 										that._nameSpace.doc.manageDownload(bufferURIs[l], buffer.type, function(xhr) {
@@ -521,19 +523,19 @@ x3dom.registerNodeType(
 										});
 									}
 								};
-								
+
 								startDownload(myBufferViews, 0);
 							} else {
 								var bufferURI = that._nameSpace.getURL(buffer.uri) + "?bytes=" + JSON.stringify(targetBufferViews[bufferId].byteArray);
-																
+
 								that._nameSpace.doc.manageDownload(bufferURI, buffer.type, function(myBufferViews) {
 									return function(xhr) {
 										that._onceDownloadedBufferViews(xhr, myBufferViews);
-									}; 
-								}(myBufferViews));									
+									};
+								}(myBufferViews));
 							}
 						}
-					}				
+					}
 				} else {
 					// create the list of buffers we want to download
 					for(bufferId in that.gltfHeader.buffers) {
@@ -551,7 +553,7 @@ x3dom.registerNodeType(
 					// start the downloads
 					for(bufferId in that._bufferData) {
 						var buffer = that._bufferData[bufferId];
-						
+
 						that._nameSpace.doc.manageDownload(buffer.uri, buffer.type, function(xhr) {
 							that._onceDownloadedBuffer(xhr, buffer);
 						});
@@ -561,29 +563,28 @@ x3dom.registerNodeType(
 
 			_onceDownloadedBufferViews: function(xhr, bufferViews) {
 				"use strict";
-				
+
                 var that = this;
-				var bufferContents = null;
 				var i = 0;
 				var finished = true;
-				
+
                 if(xhr.status === 200 || xhr.status === 0)
                 {
-                    bufferContents = new Uint8Array(xhr.response);
+					that.bufferContents = new Uint8Array(xhr.response);
                 }
-				
+
 				var totalBytes = 0;
-				
+
 				for (i = 0; i < bufferViews.length; i++)
 				{
 					var bufferView = bufferViews[i];
-					
-					bufferView.content = bufferContents.slice(totalBytes, totalBytes + bufferView.byteLength);
+
+					bufferView.content = that.bufferContents.slice(totalBytes, totalBytes + bufferView.byteLength);
 					bufferView.done    = true;
-					
+
 					totalBytes += bufferView.byteLength;
 				}
-				
+
 				if (that._bufferViews.length)
 				{
 					for (i = 0; i < that._bufferViews.length; i++)
@@ -594,40 +595,40 @@ x3dom.registerNodeType(
 						}
 					}
 				}
-				
+
                 if(finished)
                 {
                     that._bufferDownloadCompleteCallback();
-                }								
+                }
 			},
 
 			_onceDownloadedPopBufferViews: function(xhr, bufferViews, popLevel) {
 				"use strict";
-				
+
 				var bufferView = bufferViews[0];
-				
+
 				if (bufferViews.length !== 1)
 				{
 					console.error("Shouldn't happen");
 				}
-				
+
                 var that = this;
 				var bufferContents = null;
 				var i = 0;
 				var finished = true;
-				
+
 				var totalBytes = 0;
-				
+
 				if (!bufferView.popContent)
 				{
 					bufferView.popContent = [];
 				}
-				
+
 				if(xhr.status === 200 || xhr.status === 0)
                 {
 					bufferView.popContent[popLevel] = new Uint8Array(xhr.response);
 				}
-				
+
 				if (that._bufferViews.length)
 				{
 					for (i = 0; i < that._bufferViews.length; i++)
@@ -638,11 +639,11 @@ x3dom.registerNodeType(
 						}
 					}
 				}
-				
+
                 if(finished)
                 {
                     that._bufferDownloadCompleteCallback();
-                }								
+                }
 			},
 
             _onceDownloadedBuffer: function(xhr, buffer){
@@ -663,7 +664,7 @@ x3dom.registerNodeType(
 						break;
 					}
 				}
-				
+
                 if(finished)
                 {
                     that._bufferDownloadCompleteCallback();
@@ -761,55 +762,54 @@ x3dom.registerNodeType(
             // GLTF MULTIPART FUNCTIONALITY
             //----------------------------------------------------------------------------------------------------------
 
-			_createGLBuffers: function(gl, header, attrKeys, buffers, lengths, target, objs)
+			_createGLBuffers: function(gl, header, bufferKey, attrKeys, buffers, lengths, target, objs)
 			{
 				"use strict";
-			
+
 				// Create index buffer
 				var totalBytes = 0;
 				var attrBuffers = [];
 				var attrLengths = [];
-				
+
 				for (i = 0; i < attrKeys.length; i++)
 				{
 					var key = attrKeys[i];
-					
+
 					if (header.bufferViews[key].target === target)
 					{
 						attrBuffers.push(buffers[i]);
 						attrLengths.push(lengths[key]);
 						totalBytes += lengths[key];
-					}	
+					}
 				}
-				
+
 				if (totalBytes)
-				{	
+				{
+					console.log("ATTR: " + attrKeys.join(",") + " TOTAL: " + totalBytes);
+
 					var newGLBuffer = gl.createBuffer();
 					gl.bindBuffer(target, newGLBuffer);
 					gl.bufferData(target, totalBytes, gl.STATIC_DRAW);
-					
-					//console.log(target + " TB: " + totalBytes);
-					
+
+
 					var oldBuffers = [];
-					
+
 					totalBytes = 0;
-					
+
 					for (i = 0; i < attrBuffers.length; i++)
 					{
 						if (attrBuffers[i].byteLength)
 						{
 							gl.bufferSubData(target, totalBytes, new Uint8Array(attrBuffers[i], 0, attrLengths[i]));
-							
 							objs[i].glBufferOffset = totalBytes;
-							
+
 							oldBuffers.push(objs[i].glBuffer);
-							
 							objs[i].glBuffer       = newGLBuffer;
-							
+
 							totalBytes += attrLengths[i];
 						}
 					}
-					
+
 					for(var i = 0; i < oldBuffers.length; i++)
 					{
 						gl.deleteBuffer(oldBuffers[i]);
@@ -828,9 +828,9 @@ x3dom.registerNodeType(
                 var header = that.gltfHeader;
 				var i;
 				that.gl = gl;
-							
+
 				that.addMemoryManagerCallback(function(event) {
-					
+
 					// Here we recreate the OpenGL buffers
 					if (that._DEF === event.data.destination)
 					{
@@ -838,40 +838,40 @@ x3dom.registerNodeType(
 						{
 							that.memoryManagerRegistered = true;
 						} else {
-							
+
 							var gl = that.gl;
 							var header = that.gltfHeader;
-							
+
 							if (!that._multipart.indices)
 							{
 								that._multipart.indices = {};
 							}
-							
+
 							that._multipart.indices.count = event.data.count
-							that._createGLBuffers(gl, header, event.data.keys, event.data.buffers, event.data.lengths, INDEX_TARGET, [that._multipart.indices]);
-							
+							that._createGLBuffers(gl, header, event.data.destination, event.data.keys, event.data.buffers, event.data.lengths, INDEX_TARGET, [that._multipart.indices]);
+
 							var attributeObjects = [];
-							
+
 							for (i = 0; i < event.data.keys.length; i++)
 							{
 								var key = event.data.keys[i];
-								
+
 								for (var attrKey in that._multipart.attributes)
 								{
 									if (that._multipart.attributes.hasOwnProperty(attrKey))
 									{
 										var attribute = that._multipart.attributes[attrKey];
-									
+
 										if (attribute.bufferView === key)
 										{
 											attributeObjects.push(attribute);
-										}	
+										}
 									}
 								}
 							}
-							
-							that._createGLBuffers(gl, header, event.data.keys, event.data.buffers, event.data.lengths, ATTRIBUTE_TARGET, attributeObjects);	
-							
+
+							that._createGLBuffers(gl, header, event.data.destination, event.data.keys, event.data.buffers, event.data.lengths, ATTRIBUTE_TARGET, attributeObjects);
+
 							that.memoryManager.postMessage(
 								{
 									id: that._DEF,
@@ -879,28 +879,27 @@ x3dom.registerNodeType(
 									keys: event.data.keys,
 									buffers: event.data.buffers,
 									lengths: event.data.lengths
-								}
-							);		
-							
+								}, event.data.buffers);
+
 							that._rebindMultipart(that._multipart);
 						}
-					}	
+					}
 				});
-				
+
 				//debugger;
 				var myBuffers = [];
-						
+
 				if (!that._bufferViews)
 				{
 					var bufferView;
 					that._bufferViews = [];
-					
+
 					for (var k in header.bufferViews)
 					{
 						if (header.bufferViews.hasOwnProperty(k))
 						{
 							bufferView = header.bufferViews[k];
-							
+
 							if (bufferView.extras.refID === that._DEF)
 							{
 								bufferView.key = k;
@@ -908,9 +907,9 @@ x3dom.registerNodeType(
 							}
 						}
 					}
-					
+
 					var fullBuffer = that._bufferData[that._DEF.substring(0, that._DEF.length-2)].content;
-					
+
 					for (var i = 0; i < that._bufferViews.length; i++)
 					{
 						bufferView = that._bufferViews[i];
@@ -919,23 +918,23 @@ x3dom.registerNodeType(
 				} else {
 					for (var i = 0; i < that._bufferViews.length; i++)
 					{
-						if(that._bufferViews[i].popContent) 
+						if(that._bufferViews[i].popContent)
 						{
 							for (var l = 0; l < that._bufferViews[i].popContent.length; l++)
 							{
 								if (that._bufferViews[i].popContent[i])
 								{
 									myBuffer.push(that._bufferViews[i].popContent[l].buffer);
-								}	
+								}
 							}
 						} else {
 							myBuffers.push(that._bufferViews[i].content.buffer);
 						}
 					}
 				}
-				
+
 				var submeshes = that._createMultipartSubmeshes(requestedMesh);
-				
+
 				that.memoryManager.postMessage({
 					type: "registerMe",
 					id: that._DEF,
@@ -944,7 +943,7 @@ x3dom.registerNodeType(
 					submeshes: submeshes
 				},
 				myBuffers);
-				
+
                 var multipart = {};
                 that._multipart = multipart;
                 multipart.shape = shape;
@@ -964,9 +963,9 @@ x3dom.registerNodeType(
                   gpublock : multipart.gpublocks[multipart.submeshes[0].indices.bufferView]
                 };
 				*/
-				
+
 				multipart.primitives = requestedMesh.primitives;
-							
+
 				that._setBoundingBox(header, multipart.primitives);
 
 	            //that._rebuildMultipart(multipart);
@@ -998,7 +997,7 @@ x3dom.registerNodeType(
                 that._graphicsMemoryManager.rebuild();
 				*/
             },
-			
+
 		changeLOD: function(IDs, LODs)
 		{
 			if (this.memoryManagerRegistered)
@@ -1011,19 +1010,19 @@ x3dom.registerNodeType(
 						lods: LODs
 					}
 				);
-			}	
+			}
 		},
 
 		changeVisibility: function(visibleMeshes)
 		{
 			var changed = false;
-			
+
 			var newIDs    = Object.keys(visibleMeshes);
 			var oldIDs    = Object.keys(this.visibleMeshes);
-			
+
 			var newNumIDs = newIDs.length;
 			var oldNumIDs = oldIDs.length;
-		
+
 			if (newNumIDs === oldNumIDs)
 			{
 				for (var i = 0; i < newIDs.length; i++)
@@ -1037,7 +1036,7 @@ x3dom.registerNodeType(
 			} else {
 				changed = true;
 			}
-			
+
 			if (changed)
 			{
 				if (this.memoryManagerRegistered)
@@ -1050,15 +1049,15 @@ x3dom.registerNodeType(
 						}
 					);
 				}
-			
+
 				this.visibleMeshes = visibleMeshes;
-			}				
+			}
 		},
 
             writeGPUBlock: function( block )
             {
                 var that = this;
-				
+
                 if(block === that._multipart.indices.gpublock)
                 {
                     // the request is for index data - rebuild the indices as we go
@@ -1122,7 +1121,7 @@ x3dom.registerNodeType(
                 };
 
                 var primitiveCount = multipart.indices.count / 3;
-				
+
                 // set up the webgl references and counts
 
                 var meshIdx = 0;
@@ -1153,7 +1152,7 @@ x3dom.registerNodeType(
                     shape["_" + webglattribute.x3domTypeID + "StrideOffset"][0] = attribute.byteStride;
                     shape["_" + webglattribute.x3domTypeID + "StrideOffset"][1] = attribute.byteOffset + attribute.glBufferOffset;
                     shape._webgl[webglattribute.x3domTypeID + "Type"]           = attribute.componentType;
-					
+
                 }
 
                 // set the flags
@@ -1186,7 +1185,7 @@ x3dom.registerNodeType(
 									segment.id = submesh.primitive.extras.refID;
 								}
 								*/
-								
+
                                 segment.currentOffset = totalBytes;
                                 totalBytes += segment.lengthBytes;
                                 gpublock._segments.push(segment); //store the segments in the gpu block to make rebuilding it easier
@@ -1194,8 +1193,8 @@ x3dom.registerNodeType(
                             }
                         }
                     }
-								
-					console.log("BYTES: " + totalBytes);					
+
+					console.log("BYTES: " + totalBytes);
 
                     gpublock.resize(totalBytes);
                 }
@@ -1385,7 +1384,7 @@ x3dom.registerNodeType(
                 indices.count = accessor.count;
                 indices.min = accessor.min[0];
                 indices.max = accessor.max[0];
-				
+
 				// Pop buffer enabled
 				if (accessor.extras && accessor.extras.lodRef)
 				{

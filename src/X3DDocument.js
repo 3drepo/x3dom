@@ -68,24 +68,42 @@ x3dom.X3DDocument.prototype.manageDownloads = function(downloads, callback)
             download._complete = true;
             download.destination._content = xhr.responseText;
             checkDownloads();
-        });
+        }, download.clearLoad);
     });
 
 };
 
-x3dom.X3DDocument.prototype.manageDownload = function(url, responseType, callback)
+x3dom.X3DDocument.prototype.clearLoad = function(url, xhr)
 {
 	var that = this;
 
 	// From the RFC
     var pattern = RegExp("^(([^:/?#]+):)?(//([^/?#]*))?([^?#]*)(\\?([^#]*))?(#(.*))?");
     var matches =  url.match(pattern);
-	var filename = matches[5];
+	var filename = matches[5] + (matches[6] ? matches[6] : "");
+
+    if (that._xhrLoads[filename]) {
+		that._xhrCallbacks[filename] = undefined;
+		that._xhrLoads[filename].content = undefined;
+		that._xhrLoads[filename] = undefined;
+
+	}
+};
+x3dom.X3DDocument.prototype.manageDownload = function(url, responseType, callback, clearLoad)
+{
+	var that = this;
+
+	clearLoad = clearLoad !== undefined;
+
+	// From the RFC
+    var pattern = RegExp("^(([^:/?#]+):)?(//([^/?#]*))?([^?#]*)(\\?([^#]*))?(#(.*))?");
+    var matches =  url.match(pattern);
+	var filename = matches[5] + (matches[6] ? matches[6] : "");
 
     if (!that._xhrLoads[filename])
     {
         //post request
-        xhr = new XMLHttpRequest();
+        var xhr = new XMLHttpRequest();
 
         that._xhrLoads[filename] = xhr;
         that._xhrCallbacks[filename] = [];
@@ -102,6 +120,11 @@ x3dom.X3DDocument.prototype.manageDownload = function(url, responseType, callbac
                 {
                     that._xhrCallbacks[filename][i](that._xhrLoads[filename]);
                 }
+
+				if(clearLoad)
+				{
+					that.clearLoad(url, xhr);
+				}
             }
         };
     }

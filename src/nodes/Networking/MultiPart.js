@@ -323,7 +323,7 @@ x3dom.registerNodeType(
 
                     xhr.onload = function()
                     {
-                        that.applyIDMap(JSON.parse(this.responseText));
+                        that.applyIDMap(json_parse(this.responseText));
                         that.loadInline();
                     };
 
