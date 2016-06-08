@@ -207,6 +207,9 @@ x3dom.registerNodeType(
 						this._nameSpace.doc.manageDownload(uri, "arraybuffer", function(xhr) {
 							that.partitioning = new glTFPartitioning(json_parse(new Uint8Array(xhr.response)));
 
+							var indexMap = { "X" : 0, "Y" : 1, "Z" : 2 };
+							var min, max, mesh, meshID, current;
+
 							// Compute bounding boxes for meshes in the tree
 							var partitioningStack = [{
 								treePointer: that.partitioning
@@ -214,16 +217,29 @@ x3dom.registerNodeType(
 
 							while(partitioningStack.length)
 							{
-								var currentProcessing = partitioningStack.splice(0,1)[0];
+								current = partitioningStack.splice(0,1)[0];
+								current.treePointer.axisIndex = indexMap[current.treePointer.axis];
 
-								if (!currentProcessing.treePointer.hasOwnProperty("meshes"))
+								for(meshID in current.treePointer.meshes)
+								{
+									mesh = current.treePointer.meshes[meshID];
+
+									mesh.superMeshID = that.meshMap[meshID];
+
+									min = new x3dom.fields.SFVec3f(mesh.min[0], mesh.min[1], mesh.min[2]);
+									max = new x3dom.fields.SFVec3f(mesh.max[0], mesh.max[1], mesh.max[2]);
+
+									mesh.bbox = new x3dom.fields.BoxVolume(min, max);
+								}
+
+								if (!current.treePointer.hasOwnProperty("meshes"))
 								{
 									partitioningStack.push({
-										treePointer: currentProcessing.treePointer.left
+										treePointer: current.treePointer.left
 									});
 
 									partitioningStack.push({
-										treePointer: currentProcessing.treePointer.right
+										treePointer: current.treePointer.right
 									});
 								}
 							}
@@ -724,6 +740,83 @@ x3dom.registerNodeType(
                 }
             },
 
+			addMeshes: function(current, pointers)
+			{
+				"use strict";
+				var that = this;
+
+				if (current.meshes)
+				{
+					for (var meshID in current.meshes)
+					{
+						that.visibleMeshes[current.meshes[meshID].superMeshID][meshID] = current.meshes[meshID];
+					}
+				} else {
+					pointers.tail = pointers.tail.next = current;
+				}
+			},
+
+			traverseKDTree: function(inverseWorldTransform, frustumCorners) {
+				"use strict";
+				var that = this;
+
+				var superMeshID, index, axisValue;
+
+				var pointers = { current: this.partitioning, tail: this.partitioning };
+
+				var start = window.performance.now();
+				// Applying the inverse transform to the view
+				// frustum should allow to cull in an axis aligned
+				// manner.
+				var min = inverseWorldTransform.multMatrixPnt(frustumCorners[0]).toGL();
+				var max = inverseWorldTransform.multMatrixPnt(frustumCorners[0]).toGL();
+
+				for (var i = 1; i < frustumCorners.length; i++)
+				{
+					var vec = inverseWorldTransform.multMatrixPnt(frustumCorners[i]).toGL();
+
+					for(var j = 0; j < min.length; j++)
+					{
+						if (min[j] > vec[j]) min[j] = vec[j];
+						if (max[j] < vec[j]) max[j] = vec[j];
+					}
+				}
+
+				var end = window.performance.now();
+				var time = end - start;
+				console.log('Execution time: ' + time);
+				start = window.performance.now();
+
+				// Loop through the children elements and cull those from the
+				// multipart generation
+				var a = 0;
+
+				while(pointers.current)
+				{
+					a += 1;
+
+					if ((pointers.current.value > min[pointers.current.axisIndex])
+							&& (pointers.current.value < max[pointers.current.axisIndex]))
+					{
+						that.addMeshes(pointers.current.left, pointers);
+						that.addMeshes(pointers.current.right, pointers);
+					} else if ((pointers.current.value > min[pointers.current.axisIndex])
+							&& (pointers.current.value > max[pointers.current.axisIndex])) {
+						that.addMeshes(pointers.current.left, pointers);
+					} else if ((pointers.current.value < min[pointers.current.axisIndex])
+							&& (pointers.current.value < max[pointers.current.axisIndex])) {
+						that.addMeshes(pointers.current.right, pointers);
+					}
+
+					pointers.current = pointers.current.next;
+				}
+
+				end = window.performance.now();
+				time = end - start;
+				console.log("A: " + a);
+				console.log('Execution time: ' + time);
+			},
+
 			collectDrawableObjects: function (transform, drawableCollection, singlePath, invalidateCache, planeMask, clipPlanes)
             {
 				var that = this;
@@ -731,7 +824,6 @@ x3dom.registerNodeType(
 				if (this.partitioning)
 				{
 					var originalBoundingBox = this.graphState().worldVolume;
-					var treeStack = [this.partitioning]; // Stack containing parts of the tree ready to process
 
 					var _setAxisValue = function(axis, vec, value)
 					{
@@ -746,86 +838,25 @@ x3dom.registerNodeType(
 					}
 
 					var start = new Date().getTime();
-					var inverseWorldTransform = transform.inverse();
+					var mesh, bbox, subMeshPlaneMask, meshID, superMeshID, myGraphState;
 
+					var inverseWorldTransform = transform.inverse();
 					var frustumCorners = drawableCollection.viewFrustum.corners;
 
-					// Applying the inverse transform to the view
-					// frustum should allow to cull in an axis aligned
-					// manner.
-					var min = inverseWorldTransform.multMatrixPnt(frustumCorners[0]).toGL();
-					var max = inverseWorldTransform.multMatrixPnt(frustumCorners[0]).toGL();
-
-					for (var i = 1; i < frustumCorners.length; i++)
-					{
-						var vec = inverseWorldTransform.multMatrixPnt(frustumCorners[i]).toGL();
-
-						for(var j = 0; j < min.length; j++)
-						{
-							if (min[j] > vec[j]) min[j] = vec[j];
-							if (max[j] < vec[j]) max[j] = vec[j];
-						}
-					}
-
-					var indexMap = { "X" : 0, "Y" : 1, "Z" : 2 };
-
-					// Loop through the children elements and cull those from the
-					// multipart generation
-					while(treeStack.length)
-					{
-						var currentProcessing = treeStack.shift();
-
-						if (currentProcessing.hasOwnProperty("meshes"))
-						{
-							var currentVisibleMeshes = currentProcessing.meshes;
-
-							for (var meshID in currentVisibleMeshes)
-							{
-								if (!that.visibleMeshes.hasOwnProperty(meshID) && currentVisibleMeshes.hasOwnProperty(meshID))
-								{
-									var superMeshID = this.meshMap[meshID];
-
-									if (!that.visibleMeshes[superMeshID])
-									{
-										that.visibleMeshes[superMeshID] = {};
-									}
-
-									that.visibleMeshes[superMeshID][meshID] = currentVisibleMeshes[meshID];
-								}
-							}
-
-						} else {
-							var index = indexMap[currentProcessing.axis];
-							var axisValue = currentProcessing.value;
-
-							if ((axisValue > min[index]) && (axisValue < max[index]))
-							{
-								treeStack.push(currentProcessing.left);
-								treeStack.push(currentProcessing.right);
-							} else if ((axisValue > min[index]) && (axisValue > max[index])) {
-								treeStack.push(currentProcessing.left);
-							} else if ((axisValue < min[index]) && (axisValue < max[index])) {
-								treeStack.push(currentProcessing.right);
-							}
-						}
-					}
-
+					that.traverseKDTree(inverseWorldTransform, frustumCorners);
 					that.visibleMeshInfo = {};
 
 					// Refined mesh culling
-					for(var superMeshID in that.visibleMeshes)
+					for(superMeshID in that.visibleMeshes)
 					{
 						that.visibleMeshInfo[superMeshID] = {};
 
-						for (var meshID in that.visibleMeshes[superMeshID])
+						for (meshID in that.visibleMeshes[superMeshID])
 						{
-							var mesh = that.visibleMeshes[superMeshID][meshID];
-							var min = new x3dom.fields.SFVec3f(mesh.min[0], mesh.min[1], mesh.min[2]);
-							var max = new x3dom.fields.SFVec3f(mesh.max[0], mesh.max[1], mesh.max[2]);
+							mesh = that.visibleMeshes[superMeshID][meshID];
+							bbox = mesh.bbox;
 
-							var bbox = new x3dom.fields.BoxVolume(min, max);
-
-							var myGraphState = {
+							myGraphState = {
 								needCulling: true,
 								worldVolume: new x3dom.fields.BoxVolume(),
 								boundedNode : {
@@ -834,7 +865,7 @@ x3dom.registerNodeType(
 								}
 							};
 
-							var subMeshPlaneMask = drawableCollection.cull(transform, myGraphState, singlePath, planeMask);
+							subMeshPlaneMask = drawableCollection.cull(transform, myGraphState, singlePath, planeMask);
 
 							if (subMeshPlaneMask >= 0)
 							{
@@ -849,7 +880,8 @@ x3dom.registerNodeType(
 
 					var end = new Date().getTime();
 					var time = end - start;
-					//console.log('Execution time: ' + time);
+					console.log('Execution time (refinement): ' + time);
+
 					//console.log("LEN: " + Object.keys(visibleMeshes).length);
 
 					for(var i = 0; i < this.geometryNodes.length; i++)
