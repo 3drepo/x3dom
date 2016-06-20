@@ -9,6 +9,23 @@
  * Author: Sebastian Friston
  */
 
+var superMeshVisible = function(meshList) {
+	"use strict";
+
+	this.meshVisibility = {};
+	this.meshList = meshList;
+
+	this.setVisible = function(meshID) {
+		this.meshVisibility[meshList[i]] = true;
+	}
+
+	this.reset = function() {
+		for(var i = 0; i < this.meshList.length; i++) {
+			this.meshVisibility[meshList[i]] = false;
+		}
+	}
+};
+
 // ### glTF ###
 x3dom.registerNodeType(
     "glTF",
@@ -50,6 +67,8 @@ x3dom.registerNodeType(
 			this.meshMap = {};
 
 			this.meshList = [];
+
+			this.meshes = {};
 
 			this.memoryManager = [];
 			this.memoryManagerCallback = [];
@@ -210,6 +229,8 @@ x3dom.registerNodeType(
 							var indexMap = { "X" : 0, "Y" : 1, "Z" : 2 };
 							var min, max, mesh, meshID, current;
 
+							that.visibleMeshes = {};
+
 							// Compute bounding boxes for meshes in the tree
 							var partitioningStack = [{
 								treePointer: that.partitioning
@@ -223,8 +244,16 @@ x3dom.registerNodeType(
 								for(meshID in current.treePointer.meshes)
 								{
 									mesh = current.treePointer.meshes[meshID];
-
 									mesh.superMeshID = that.meshMap[meshID];
+
+									if (!that.visibleMeshes[mesh.superMeshID])
+									{
+										that.visibleMeshes[mesh.superMeshID] = {};
+									}
+
+									that.meshes[meshID] = mesh;
+
+									that.visibleMeshes[mesh.superMeshID][meshID] = false;
 
 									min = new x3dom.fields.SFVec3f(mesh.min[0], mesh.min[1], mesh.min[2]);
 									max = new x3dom.fields.SFVec3f(mesh.max[0], mesh.max[1], mesh.max[2]);
@@ -743,13 +772,20 @@ x3dom.registerNodeType(
 			addMeshes: function(current, pointers)
 			{
 				"use strict";
+				"use asm";
+
 				var that = this;
 
 				if (current.meshes)
 				{
-					for (var meshID in current.meshes)
+					var keys = Object.keys(current.meshes);
+					var i = keys.length;
+					var meshID;
+
+					while (i--)
 					{
-						that.visibleMeshes[current.meshes[meshID].superMeshID][meshID] = current.meshes[meshID];
+						meshID = keys[i];
+						that.visibleMeshes[current.meshes[meshID].superMeshID][meshID] = true; // current.meshes[meshID];
 					}
 				} else {
 					pointers.tail = pointers.tail.next = current;
@@ -782,18 +818,15 @@ x3dom.registerNodeType(
 					}
 				}
 
-				var end = window.performance.now();
-				var time = end - start;
-				console.log('Execution time: ' + time);
-				start = window.performance.now();
+				//var start = window.performance.now();
 
 				// Loop through the children elements and cull those from the
 				// multipart generation
-				var a = 0;
+				//var a = 0;
 
 				while(pointers.current)
 				{
-					a += 1;
+					//a += 1;
 
 					if ((pointers.current.value > min[pointers.current.axisIndex])
 							&& (pointers.current.value < max[pointers.current.axisIndex]))
@@ -811,10 +844,12 @@ x3dom.registerNodeType(
 					pointers.current = pointers.current.next;
 				}
 
-				end = window.performance.now();
-				time = end - start;
+				/*
+				var end = window.performance.now();
+				var time = end - start;
 				console.log("A: " + a);
 				console.log('Execution time: ' + time);
+				*/
 			},
 
 			collectDrawableObjects: function (transform, drawableCollection, singlePath, invalidateCache, planeMask, clipPlanes)
@@ -823,8 +858,6 @@ x3dom.registerNodeType(
 
 				if (this.partitioning)
 				{
-					var originalBoundingBox = this.graphState().worldVolume;
-
 					var _setAxisValue = function(axis, vec, value)
 					{
 						if (axis === "X") { vec.x = value; }
@@ -832,12 +865,15 @@ x3dom.registerNodeType(
 						else if (axis === "Z") { vec.z = value; }
 					};
 
-					for (var i = 0; i < this.meshList.length; i++)
+					for (var superMeshID in that.visibleMeshes)
 					{
-						that.visibleMeshes[this.meshList[i]] = {};
+						for (var meshID in that.visibleMeshes[superMeshID])
+						{
+							that.visibleMeshes[superMeshID][meshID] = false;
+						}
 					}
 
-					var start = new Date().getTime();
+					//ar start = new Date().getTime();
 					var mesh, bbox, subMeshPlaneMask, meshID, superMeshID, myGraphState;
 
 					var inverseWorldTransform = transform.inverse();
@@ -853,36 +889,39 @@ x3dom.registerNodeType(
 
 						for (meshID in that.visibleMeshes[superMeshID])
 						{
-							mesh = that.visibleMeshes[superMeshID][meshID];
-							bbox = mesh.bbox;
-
-							myGraphState = {
-								needCulling: true,
-								worldVolume: new x3dom.fields.BoxVolume(),
-								boundedNode : {
-									_vf : { render: true },
-									getVolume: function() { return bbox; }
-								}
-							};
-
-							subMeshPlaneMask = drawableCollection.cull(transform, myGraphState, singlePath, planeMask);
-
-							if (subMeshPlaneMask >= 0)
+							if (that.visibleMeshes[superMeshID][meshID])
 							{
-								that.visibleMeshInfo[superMeshID][meshID] = {
-									id: meshID,
-									size: myGraphState.coverage,
-									distance: drawableCollection.viewMatrix.e3().subtract(bbox.center).length()
+								mesh = that.meshes[meshID];
+								bbox = mesh.bbox;
+
+								myGraphState = {
+									needCulling: true,
+									worldVolume: new x3dom.fields.BoxVolume(),
+									boundedNode : {
+										_vf : { render: true },
+										getVolume: function() { return bbox; }
+									}
 								};
+
+								subMeshPlaneMask = drawableCollection.cull(transform, myGraphState, singlePath, planeMask);
+
+								if (subMeshPlaneMask >= 0)
+								{
+									that.visibleMeshInfo[superMeshID][meshID] = {
+										id: meshID,
+										size: myGraphState.coverage,
+										distance: drawableCollection.viewMatrix.e3().subtract(bbox.center).length()
+									};
+								}
 							}
 						}
 					}
 
+					/*
 					var end = new Date().getTime();
 					var time = end - start;
 					console.log('Execution time (refinement): ' + time);
-
-					//console.log("LEN: " + Object.keys(visibleMeshes).length);
+					*/
 
 					for(var i = 0; i < this.geometryNodes.length; i++)
 					{
