@@ -192,8 +192,6 @@ x3dom.registerNodeType(
                         e.type = "mouseover";
                         this.callEvtHandler("onmouseover", e);
 
-						console.log("MU: " + e.mouseup + " B: " + e.button + " LB: " + this._lastButton);
-
                         //if some mouse button is down fire mousedown event
                         if (!e.mouseup && e.button && e.button != this._lastButton) {
                             e.type = "mousedown";

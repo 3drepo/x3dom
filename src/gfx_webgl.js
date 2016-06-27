@@ -3061,6 +3061,7 @@ x3dom.gfx_webgl = (function () {
                 //Check if there are MultiParts
                 if (scene._multiPartMap) {
                     var mp, multiPart;
+                    var pRatio = this.x3dElem.runtime.canvas.devicePixelRatio;
 
                     //Find related MultiPart
                     for (mp=0; mp<scene._multiPartMap.multiParts.length; mp++)
@@ -3075,7 +3076,7 @@ x3dom.gfx_webgl = (function () {
                             event = {
                                 target: multiPart._xmlNode,
                                 button: button, mouseup: ((buttonState >>> 8) > 0),
-                                layerX: x, layerY: y,
+                                layerX: x / pRatio, layerY: y / pRatio,
                                 pickedId: objId,
                                 worldX: pickPos.x, worldY: pickPos.y, worldZ: pickPos.z,
                                 normalX: pickNorm.x, normalY: pickNorm.y, normalZ: pickNorm.z,
@@ -3093,7 +3094,7 @@ x3dom.gfx_webgl = (function () {
                             event = {
                                 target: multiPart._xmlNode,
                                 button: button, mouseup: ((buttonState >>> 8) > 0),
-                                layerX: x, layerY: y,
+                                layerX: x / pRatio, layerY: y / pRatio,
                                 pickedId: -1,
                                 cancelBubble: false,
                                 stopPropagation: function () { this.cancelBubble = true; },

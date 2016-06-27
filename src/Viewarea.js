@@ -1102,7 +1102,11 @@ x3dom.Viewarea.prototype.getCCtoWCMatrix = function()
 
 x3dom.Viewarea.prototype.calcViewRay = function(x, y, mat)
 {
+    var pRatio = this._doc.ctx.x3dElem.runtime.canvas.devicePixelRatio;
     var cctowc = mat ? mat : this.getCCtoWCMatrix();
+
+    x = x / pRatio;
+    y = y / pRatio;
 
     var rx = x / (this._width - 1.0) * 2.0 - 1.0;
     var ry = (this._height - 1.0 - y) / (this._height - 1.0) * 2.0 - 1.0;
@@ -1314,14 +1318,15 @@ x3dom.Viewarea.prototype.checkEvents = function (obj, x, y, buttonState, eventTy
 
     var affectedPointingSensorsList = this._doc._nodeBag.affectedPointingSensors;
 
+    var pRatio = this._doc.ctx.x3dElem.runtime.canvas.devicePixelRatio;
 
     var event = {
         viewarea: that,
         target: target,
         type: eventType.substr(2, eventType.length-2),
         button: buttonState,
-        layerX: x,
-        layerY: y,
+        layerX: x / pRatio,
+        layerY: y / pRatio,
         worldX: that._pick.x,
         worldY: that._pick.y,
         worldZ: that._pick.z,
