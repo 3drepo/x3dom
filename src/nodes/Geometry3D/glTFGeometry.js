@@ -395,7 +395,7 @@ x3dom.registerNodeType(
                 buffer.done = true;
                 if(xhr.status === 200 || xhr.status === 0)
                 {
-                    buffer.content = new Uint8Array(xhr.response, 0, xhr.byteLength);
+                    buffer.content = new Uint8Array(xhr.response);
                 }
 
                 var finished = true;
