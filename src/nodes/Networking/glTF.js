@@ -231,7 +231,7 @@ x3dom.registerNodeType(
 
                 // check if this is the start of a multipart subgraph. if so, put the subgrpah we just created inside a
                 // Multipart element, and build an idmap to send with it via the DOM
-                var multipart = header.meshes[meshname].primitives[0].attributes["IDMAP"] != undefined;
+                var multipart = header.meshes[meshname].primitives && header.meshes[meshname].primitives[0] && header.meshes[meshname].primitives[0].attributes["IDMAP"] != undefined;
                 if(multipart)
                 {
                     //this is a multipart mesh, so make the shape node an inline scene of a multipart element
@@ -265,8 +265,11 @@ x3dom.registerNodeType(
                     // create and apply the appearance node from the mesh material
                     //todo: set the material
 
-                    var materialName = header.meshes[meshname].primitives[0].material;
-                    shapeNode.appendChild(that._createAppearanceNode(sceneDoc, materialName));
+                    if(header.meshes[meshname].primitives && header.meshes[meshname].primitives.length > 0){
+                        var materialName = header.meshes[meshname].primitives[0].material;
+                        shapeNode.appendChild(that._createAppearanceNode(sceneDoc, materialName));
+                    }
+
                 }
 
                 return shapeNode;

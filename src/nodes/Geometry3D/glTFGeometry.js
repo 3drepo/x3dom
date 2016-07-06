@@ -270,14 +270,14 @@ x3dom.registerNodeType(
                 // positions member
                 //todo: perhaps not make it have to be the positions member? if we
 
-                if((!primitive.indices) && (!primitive.attributes.position)) {
+                if(!primitive || ((!primitive.indices) && (!primitive.attributes.position))) {
                     x3dom.debug.logError("glTFGeometry node encountered mesh with neither indices or position attributes");
                     return;
                 }
 
                 that._createBufferViews(gl);
 
-                if (primitive.indices)
+                if (primitive && primitive.indices)
                 {
                     shape._webgl.externalGeometry =  1; //indexed EG
 
