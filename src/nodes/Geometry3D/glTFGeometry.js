@@ -239,12 +239,7 @@ x3dom.registerNodeType(
             _updateRenderData: function(shape, shaderProgram, gl, requestedMesh)
             {
                 //todo: replace with isMultipart flag
-                if(requestedMesh.primitives.length > 1){
-                    //this._createBufferViews(gl);
-                    this._updateRenderDataForMultipart(shape, gl, requestedMesh);
-                }else {
-                    this._updateRenderDataForPrimitive(shape, gl, requestedMesh.primitives[0]);
-                }
+                this._updateRenderDataForMultipart(shape, gl, requestedMesh);
 
                 shape._nameSpace.doc.downloadCount -= 1;
             },

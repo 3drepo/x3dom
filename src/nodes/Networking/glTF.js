@@ -926,8 +926,11 @@ x3dom.registerNodeType(
 					for(var i = 0; i < this.geometryNodes.length; i++)
 					{
 						var geomNode   = this.geometryNodes[i];
-						var geomNodeID = geomNode.getAttribute("DEF")
-						geomNode._x3domNode.changeVisibility(that.visibleMeshInfo[geomNodeID]);
+						var geomNodeID = geomNode.getAttribute("DEF");
+
+						if (that.visibleMeshInfo[geomNodeID] && Object.keys(that.visibleMeshInfo[geomNodeID]).length) {
+							geomNode._x3domNode.changeVisibility(that.visibleMeshInfo[geomNodeID]);
+						}
 					}
 				}
 
