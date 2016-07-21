@@ -1436,6 +1436,7 @@ x3dom.registerNodeType(
                     //we assume that either all of them, or no one have specified a bounding volume
                     shapeNode = this._parentNodes[0];
 
+<<<<<<< Updated upstream
 					if (self.headerBBoxSet)
 					{
 						vol.setBoundsByCenterSize(self.headerBBoxCenter, self.headerBBoxSize);
@@ -1445,6 +1446,19 @@ x3dom.registerNodeType(
                     	{
 	                        vol.setBoundsByCenterSize(shapeNode._vf["bboxCenter"], shapeNode._vf["bboxSize"]);
 	                    }
+=======
+                    if (typeof shapeNode._vf["bboxCenter"] != 'undefined' &&
+                        typeof shapeNode._vf["bboxSize"]   != 'undefined' &&
+						(shapeNode._vf["bboxSize"].toGL().filter(function(val) { return val < 0; }).length === 0)
+						)
+                    {
+                        vol.setBoundsByCenterSize(shapeNode._vf["bboxCenter"], shapeNode._vf["bboxSize"]);
+                    }
+                    //if no bbox information was specified for the Shape node, use information from the SRC header
+                    else
+                    {
+
+>>>>>>> Stashed changes
                     }
                 }
 
