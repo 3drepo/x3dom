@@ -177,16 +177,16 @@ x3dom.X3DCanvas = function(x3dElem, canvasIdx)
     // disable touch events
     this.disableTouch = x3dElem.getAttribute("disableTouch");
     this.disableTouch = this.disableTouch ? (this.disableTouch.toLowerCase() == "true") : false;
-	
+
 	this.disableKeys = x3dElem.getAttribute("keysEnabled");
 	this.disableKeys = this.disableKeys ? (this.disableKeys.toLowerCase() == "true") : false;
-	
+
 	this.disableRightDrag = x3dElem.getAttribute("disableRightDrag");
 	this.disableRightDrag = this.disableRightDrag ? (this.disableRightDrag.toLowerCase() == "true") : false;
-	
+
 	this.disableLeftDrag = x3dElem.getAttribute("disableLeftDrag");
 	this.disableLeftDrag = this.disableLeftDrag ? (this.disableLeftDrag.toLowerCase() == "true") : false;
-	
+
 	this.disableMiddleDrag = x3dElem.getAttribute("disableMiddleDrag");
 	this.disableMiddleDrag = this.disableMiddleDrag ? (this.disableMiddleDrag.toLowerCase() == "true") : false;
 
@@ -231,9 +231,11 @@ x3dom.X3DCanvas = function(x3dElem, canvasIdx)
                     default: this.mouse_button = 0; break;
                 }
 
+				/*
                 if (evt.shiftKey) { this.mouse_button = 1; }
                 if (evt.ctrlKey)  { this.mouse_button = 4; }
                 if (evt.altKey)   { this.mouse_button = 2; }
+				*/
 
                 var pos = this.parent.mousePosition(evt);
                 this.mouse_drag_x = pos.x;
@@ -299,7 +301,7 @@ x3dom.X3DCanvas = function(x3dElem, canvasIdx)
             if(!this.isMulti) {
 
                 var pos = this.parent.mousePosition(evt);
-                
+
                 if ( pos.x != that.lastMousePos.x || pos.y != that.lastMousePos.y ) {
                     that.lastMousePos = pos;
                     if (evt.shiftKey) { this.mouse_button = 1; }
@@ -310,10 +312,10 @@ x3dom.X3DCanvas = function(x3dElem, canvasIdx)
                     this.mouse_drag_y = pos.y;
 
                     if (this.mouse_dragging) {
-						
+
 						if ( this.mouse_button == 1 && !this.parent.disableLeftDrag ||
 							 this.mouse_button == 2 && !this.parent.disableRightDrag ||
-							 this.mouse_button == 4 && !this.parent.disableMiddleDrag ) 
+							 this.mouse_button == 4 && !this.parent.disableMiddleDrag )
 						{
 							this.parent.doc.onDrag(that.gl, this.mouse_drag_x, this.mouse_drag_y, this.mouse_button);
 						}
