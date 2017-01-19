@@ -304,10 +304,11 @@ x3dom.X3DCanvas = function(x3dElem, canvasIdx)
 
                 if ( pos.x != that.lastMousePos.x || pos.y != that.lastMousePos.y ) {
                     that.lastMousePos = pos;
+                    /*
                     if (evt.shiftKey) { this.mouse_button = 1; }
                     if (evt.ctrlKey)  { this.mouse_button = 4; }
                     if (evt.altKey)   { this.mouse_button = 2; }
-
+                    */
                     this.mouse_drag_x = pos.x;
                     this.mouse_drag_y = pos.y;
 
