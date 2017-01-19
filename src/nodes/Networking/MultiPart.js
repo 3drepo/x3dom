@@ -136,12 +136,12 @@ x3dom.registerNodeType(
 
             getMinID: function ()
             {
-                return this._minId + x3dom.nodeTypes.Shape.objectID;
+                return this._minId; //+ x3dom.nodeTypes.Shape.objectID;
             },
 
             getMaxID: function ()
             {
-                return this._maxID + x3dom.nodeTypes.Shape.objectID;
+                return this._maxId; // + x3dom.nodeTypes.Shape.objectID;
             },
 
             getVolume: function ()
@@ -583,7 +583,7 @@ x3dom.registerNodeType(
                             shapes[s].setAttribute("render", "false");
                         }
 
-                        shapes[s].setAttribute("idOffset", this.getMinID());
+                        shapes[s].setAttribute("idOffset", this._minId);
                         shapes[s].setAttribute("isPickable", this._vf.isPickable);
 
                         var geometries = shapes[s].getElementsByTagName("BinaryGeometry");
