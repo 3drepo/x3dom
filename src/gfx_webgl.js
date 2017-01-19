@@ -3067,7 +3067,7 @@ x3dom.gfx_webgl = (function () {
                     for (mp=0; mp<scene._multiPartMap.multiParts.length; mp++)
                     {
                         multiPart = scene._multiPartMap.multiParts[mp];
-                        if (objId >= multiPart._minId && objId <= multiPart._maxId)
+                        if (objId >= multiPart.getMinID() && objId <= multiPart.getMaxID())
                         {
                             hitObject = multiPart._xmlNode;
 
@@ -3307,8 +3307,8 @@ x3dom.gfx_webgl = (function () {
                         emissiveMap = multiPart._inlineNamespace.defMap["MultiMaterial_EmissiveMap"];
                         specularMap = multiPart._inlineNamespace.defMap["MultiMaterial_SpecularMap"];
                         visibilityMap = multiPart._inlineNamespace.defMap["MultiMaterial_VisibilityMap"];
-                        if (objId >= multiPart._minId && objId <= multiPart._maxId) {
-                            partID = multiPart._idMap.mapping[objId - multiPart._minId].name;
+                        if (objId >= multiPart.getMinID() && objId <= multiPart.getMaxID()) {
+                            partID = multiPart._idMap.mapping[objId - multiPart.getMinID()].name;
                             hitObject = new x3dom.Parts(multiPart, [objId], colorMap, emissiveMap, specularMap, visibilityMap);
 
                             pickedNode = {"partID": partID, "part":hitObject};
