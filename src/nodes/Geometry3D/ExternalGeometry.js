@@ -98,11 +98,14 @@ x3dom.registerNodeType(
                 	// TODO: currently, only one mesh can be selected
                 	url = urlParts[0];
                 	requestedMesh = urlParts[1];
+                    url += ((queryParts.length > 1) ? ("?" + queryParts[queryParts.length - 1]) : "");
+
                 } else if (urlParts.length > 2) {
                 	url = urlParts[0];
+                    url += ((queryParts.length > 1) ? ("?" + queryParts[queryParts.length - 1]) : "");
                 }
 
-                url += ((queryParts.length > 1) ? ("?" + queryParts[queryParts.length - 1]) : "");
+               
 
                 this._nameSpace.doc.manageDownload(url, "arraybuffer", function(xhr) {
                     that._onceLoaded(xhr, shape, shaderProgram, gl, viewarea, context, requestedMesh);
