@@ -90,6 +90,11 @@ x3dom.registerNodeType(
                 var url = shape._nameSpace.getURL(this._vf['url'][this._currentURLIdx]);
                 var queryParts = url.split("?");
 
+		if (queryParts.length > 1)
+		{
+			url = queryParts[0];
+		}
+
                 var urlParts = url.split("#");
                 var requestedMesh = "";
 
