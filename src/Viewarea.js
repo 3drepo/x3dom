@@ -2080,8 +2080,15 @@ x3dom.Viewarea.prototype.prepareEvents = function (x, y, buttonState, eventType)
         obj = this._pickingInfo.pickObj;
 
         if (obj) {
-            this._pick.setValues(this._pickingInfo.pickPos);
-            this._pickNorm.setValues(this._pickingInfo.pickNorm);
+		if (this._pickingInfo.pickPos)
+		{
+            		this._pick.setValues(this._pickingInfo.pickPos);
+		}
+
+		if (this._pickingInfo.pickNorm)
+		{
+            		this._pickNorm.setValues(this._pickingInfo.pickNorm);
+		}
 
             this.checkEvents(obj, x, y, buttonState, eventType);
 

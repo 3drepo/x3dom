@@ -23,6 +23,7 @@ x3dom.X3DDocument = function(canvas, ctx, settings) {
     this.previousDownloadCount = 0;
     this._xhrLoads             = {};
     this._xhrCallbacks         = {};
+    this.inMeasureMode         = false;
 
     // bag for pro-active (or multi-core-like) elements
     this._nodeBag = {
@@ -443,8 +444,8 @@ x3dom.X3DDocument.prototype.onDrag = function (ctx, x, y, buttonState) {
         return;
     }
 
-    if (this._viewarea._scene._vf.doPickPass)
-        ctx.pickValue(this._viewarea, x, y, buttonState);
+    //if (this._viewarea._scene._vf.doPickPass)
+    //    ctx.pickValue(this._viewarea, x, y, buttonState);
     this._viewarea.onDrag(x, y, buttonState);
 };
 
@@ -453,8 +454,8 @@ x3dom.X3DDocument.prototype.onWheel = function (ctx, x, y, originalY) {
         return;
     }
 
-    if (this._viewarea._scene._vf.doPickPass)
-        ctx.pickValue(this._viewarea, x, originalY, 0);
+    //if (this._viewarea._scene._vf.doPickPass)
+    //    ctx.pickValue(this._viewarea, x, originalY, 0);
     this._viewarea.onDrag(x, y, 8);
 };
 
@@ -494,8 +495,8 @@ x3dom.X3DDocument.prototype.onMouseOver = function (ctx, x, y, buttonState) {
         return;
     }
 
-    ctx.pickValue(this._viewarea, x, y, buttonState);
-    this._viewarea.onMouseOver(x, y, buttonState);
+    //ctx.pickValue(this._viewarea, x, y, buttonState);
+    //this._viewarea.onMouseOver(x, y, buttonState);
 };
 
 x3dom.X3DDocument.prototype.onMouseOut = function (ctx, x, y, buttonState) {
@@ -503,7 +504,7 @@ x3dom.X3DDocument.prototype.onMouseOut = function (ctx, x, y, buttonState) {
         return;
     }
 
-    ctx.pickValue(this._viewarea, x, y, buttonState);
+    //ctx.pickValue(this._viewarea, x, y, buttonState);
     this._viewarea.onMouseOut(x, y, buttonState);
 };
 

@@ -3096,12 +3096,27 @@ x3dom.gfx_webgl = (function () {
                 if (scene._multiPartMap) {
                     var mp, multiPart;
                     var pRatio = this.x3dElem.runtime.canvas.devicePixelRatio;
+		
+		    var isMultiPart = false;
+
+		    for (var i=0; i < scene._multiPartMap.multiParts.length; i++)
+		    {
+			    isMultiPart = isMultiPart || scene._multiPartMap.multiParts[i]._xmlNode.contains(viewarea._pickingInfo.pickObj._xmlNode);
+
+			    if (isMultiPart)
+			    {
+				    break;
+			    }
+		    }
+
+		    if (isMultiPart)
+		    {
 
                     //Find related MultiPart
                     for (mp=0; mp<scene._multiPartMap.multiParts.length; mp++)
                     {
                         multiPart = scene._multiPartMap.multiParts[mp];
-                        if (objId >= multiPart._minId && objId <= multiPart._maxId)
+                        if (objId >= multiPart.getMinID() && objId <= multiPart.getMaxID())
                         {
                             hitObject = multiPart._xmlNode;
 
@@ -3123,21 +3138,8 @@ x3dom.gfx_webgl = (function () {
 
                             multiPart.handleEvents(event);
                         }
-                        else
-                        {
-                            event = {
-                                target: multiPart._xmlNode,
-                                button: button, mouseup: ((buttonState >>> 8) > 0),
-                                layerX: x / pRatio, layerY: y / pRatio,
-                                pickedId: -1,
-                                cancelBubble: false,
-                                stopPropagation: function () { this.cancelBubble = true; },
-                                preventDefault:  function () { this.cancelBubble = true; }
-                            };
-
-                            multiPart.handleEvents(event);
-                        }
-                    }
+		    }
+		    }
                 }
 
                 shadowObjectIdChanged = (viewarea._pickingInfo.shadowObjectId != objId);
@@ -3341,8 +3343,8 @@ x3dom.gfx_webgl = (function () {
                         emissiveMap = multiPart._inlineNamespace.defMap["MultiMaterial_EmissiveMap"];
                         specularMap = multiPart._inlineNamespace.defMap["MultiMaterial_SpecularMap"];
                         visibilityMap = multiPart._inlineNamespace.defMap["MultiMaterial_VisibilityMap"];
-                        if (objId >= multiPart._minId && objId <= multiPart._maxId) {
-                            partID = multiPart._idMap.mapping[objId - multiPart._minId].name;
+                        if (objId >= multiPart.getMinID() && objId <= multiPart.getMaxID()) {
+                            partID = multiPart._idMap.mapping[objId - multiPart.getMinID()].name;
                             hitObject = new x3dom.Parts(multiPart, [objId], colorMap, emissiveMap, specularMap, visibilityMap);
 
                             pickedNode = {"partID": partID, "part":hitObject};
