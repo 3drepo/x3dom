@@ -2864,7 +2864,7 @@ x3dom.gfx_webgl = (function () {
     /*****************************************************************************
      * Render ColorBuffer-Pass for picking
      *****************************************************************************/
-    Context.prototype.pickValue = function (viewarea, x, y, buttonState, viewMat, sceneMat)
+    Context.prototype.pickValue = function (viewarea, x, y, buttonState, viewMat, sceneMat, overridePickMode)
     {
         x3dom.Utils.startMeasure("picking");
 
@@ -2877,7 +2877,7 @@ x3dom.gfx_webgl = (function () {
             return false;
         }
 
-        var pm = scene._vf.pickMode.toLowerCase();
+        var pm = (overridePickMode ? overridePickMode : scene._vf.pickMode).toLowerCase();
         var pickMode = 0;
 
         switch (pm) {
@@ -2887,20 +2887,16 @@ x3dom.gfx_webgl = (function () {
             case "idbufid":  pickMode = 4; break;
             case "color":    pickMode = 1; break;
             case "texcoord": pickMode = 2; break;
+            case "pos":      pickMode = 5; break;
         }
 
 
         // ViewMatrix and ViewProjectionMatrix
         var mat_view, mat_scene;
 
-        if (arguments.length > 4) {
-            mat_view = viewMat;
-            mat_scene = sceneMat;
-        }
-        else {
-            mat_view = viewarea._last_mat_view;
-            mat_scene = viewarea._last_mat_scene;
-        }
+
+        mat_view = viewMat ? viewMat : viewarea.getViewMatrix();
+        mat_scene = sceneMat ? sceneMat : viewarea._last_mat_scene;
 
         // remember correct scene bbox
         var min = x3dom.fields.SFVec3f.copy(scene._lastMin);
@@ -3022,8 +3018,46 @@ x3dom.gfx_webgl = (function () {
                 if (objId == 0 && (shapeId > 0 && shapeId < baseID)) {
                     objId = shapeId;
                 }
-            }
-            else {
+            } else if (pickMode == 5) {
+                var floatData = new Float32Array(pixelData.buffer);
+                dist = floatData[index];
+
+                var actualX = Math.floor(x) + 0.5; //Math.floor(x / 2.0) + 0.5;
+                var actualY = Math.floor(y) + 0.5; //Math.floor(y / 2.0) + 0.5;
+
+                var width = viewarea._doc.ctx.x3dElem.runtime.canvas.canvas.width;
+                var height = viewarea._doc.ctx.x3dElem.runtime.canvas.canvas.height;
+
+                //console.log("DIST: " + dist);
+
+                line = viewarea.calcViewRay(actualX, actualY, cctowc);
+
+                var a = ((dist + 1.0) * 0.5) * width;
+                //console.log("A: " + a);
+
+                var b = (1.0 - ((dist + 1.0) * 0.5)) * height;
+                //console.log("B: " + b);
+
+                pickPos = from.add(line.dir.multiply(dist));
+
+                index = 1;      // get right pixel
+                dist = floatData[index];
+
+                lineoff = viewarea.calcViewRay(actualX + pixelOffset, actualY, cctowc);
+
+                right = from.add(lineoff.dir.multiply(dist));
+                right = right.subtract(pickPos).normalize();
+
+                index = 2;      // get top pixel
+                dist = floatData[index];
+
+                lineoff = viewarea.calcViewRay(actualX, actualY - pixelOffset, cctowc);
+
+                up = from.add(lineoff.dir.multiply(dist));
+                up = up.subtract(pickPos).normalize();
+
+                pickNorm = right.cross(up).normalize();
+            } else {
                 pickPos.x = pixelData[index    ];
                 pickPos.y = pixelData[index + 1];
                 pickPos.z = pixelData[index + 2];
@@ -3375,7 +3409,7 @@ x3dom.gfx_webgl = (function () {
             this.setupFgnds(gl, scene);
 
             // scale factor for mouse coords and width/ height (low res for speed-up)
-            scene._webgl.pickScale = 0.5;
+            scene._webgl.pickScale = 1.0;
 
             scene._webgl._currFboWidth = Math.round(this.canvas.width * scene._webgl.pickScale);
             scene._webgl._currFboHeight = Math.round(this.canvas.height * scene._webgl.pickScale);

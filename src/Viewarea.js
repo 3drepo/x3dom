@@ -1102,18 +1102,25 @@ x3dom.Viewarea.prototype.getCCtoWCMatrix = function()
 
 x3dom.Viewarea.prototype.calcViewRay = function(x, y, mat)
 {
-    var pRatio = this._doc.ctx.x3dElem.runtime.canvas.devicePixelRatio;
     var cctowc = mat ? mat : this.getCCtoWCMatrix();
 
-    x = x / pRatio;
-    y = y / pRatio;
+    var width = this._doc.ctx.x3dElem.runtime.canvas.canvas.width;
+    var height = this._doc.ctx.x3dElem.runtime.canvas.canvas.height;
+    
+    var from = this.getViewMatrix().inverse().e3();
 
-    var rx = x / (this._width - 1.0) * 2.0 - 1.0;
-    var ry = (this._height - 1.0 - y) / (this._height - 1.0) * 2.0 - 1.0;
+    //console.log("X: " + x + " Y: " + y);
+ 
+    x = x / width;
+    y = y / height;
 
-    var from = cctowc.multFullMatrixPnt(new x3dom.fields.SFVec3f(rx, ry, -1));
-    var at = cctowc.multFullMatrixPnt(new x3dom.fields.SFVec3f(rx, ry,  1));
-    var dir = at.subtract(from);
+    var rx = x * 2.0 - 1.0;
+    var ry = (1 - y) * 2.0 - 1.0;
+
+    //console.log("RX: " + rx + " RY: " + ry + "W: " + width + " H: " + height);
+
+    var at = cctowc.multFullMatrixPnt(new x3dom.fields.SFVec3f(rx, ry,  -1));
+    var dir = at.subtract(from).normalize();
 
     return new x3dom.fields.Ray(from, dir);
 };

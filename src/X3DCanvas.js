@@ -237,12 +237,21 @@ x3dom.X3DCanvas = function(x3dElem, canvasIdx)
                 if (evt.altKey)   { this.mouse_button = 2; }
 				*/
 
-                var pos = this.parent.mousePosition(evt);
-                this.mouse_drag_x = pos.x;
-                this.mouse_drag_y = pos.y;
+                //var pos = this.parent.mousePosition(evt);
+                //this.mouse_drag_x = pos.x;
+                //this.mouse_drag_y = pos.y;
 
                 this.mouse_dragging = true;
 
+                var rect = this.getBoundingClientRect();
+                var x = Math.round((evt.clientX-rect.left)/(rect.right-rect.left) * this.width);
+                var y = Math.round((evt.clientY-rect.top)/(rect.bottom-rect.top) * this.height);
+
+                this.mouse_drag_x = x;
+                this.mouse_drag_y = y;
+
+                //console.log("MX: " + x + " MY: " + y);
+                
                 this.parent.doc.onMousePress(that.gl, this.mouse_drag_x, this.mouse_drag_y, this.mouse_button);
                 this.parent.doc.needRender = true;
             }
@@ -309,8 +318,17 @@ x3dom.X3DCanvas = function(x3dElem, canvasIdx)
                     if (evt.ctrlKey)  { this.mouse_button = 4; }
                     if (evt.altKey)   { this.mouse_button = 2; }
                     */
-                    this.mouse_drag_x = pos.x;
-                    this.mouse_drag_y = pos.y;
+                    //this.mouse_drag_x = pos.x;
+                    //this.mouse_drag_y = pos.y;
+                    
+                    var rect = this.getBoundingClientRect();
+                    var x = Math.round((evt.clientX-rect.left)/(rect.right-rect.left) * this.width);
+                    var y = Math.round((evt.clientY-rect.top)/(rect.bottom-rect.top) * this.height);
+
+                    this.mouse_drag_x = x;
+                    this.mouse_drag_y = y;
+
+                    console.log("MX: " + x + " MY: " + y);
 
                     if (this.mouse_dragging) {
 

@@ -49,6 +49,8 @@ x3dom.shader.DynamicShaderPicking.prototype.generateVertexShader = function(gl, 
     shader += "uniform vec3 from;\n";
     shader += "varying vec3 worldCoord;\n";
 
+    shader += "varying vec3 ndcPos;\n";
+
     if(pickMode == 1) { // Color Picking
         shader += "attribute vec3 color;\n";
         shader += "varying vec3 fragColor;\n";
@@ -204,8 +206,15 @@ x3dom.shader.DynamicShaderPicking.prototype.generateVertexShader = function(gl, 
         shader += "fragPosition = (modelViewMatrix * vec4(pos, 1.0));\n";
     }
 
-    shader += "worldCoord = (modelMatrix * vec4(pos, 1.0)).xyz - from;\n";
     shader += "gl_Position = modelViewProjectionMatrix * vec4(pos, 1.0);\n";
+    shader += "ndcPos = gl_Position.xyz / gl_Position.w;\n";
+
+    if (pickMode != 5)
+    {
+        shader += "worldCoord = (modelMatrix * vec4(pos, 1.0)).xyz - from;\n";
+    } else {
+        shader += "worldCoord = (modelMatrix * vec4(pos, 1.0)).xyz;\n";
+    }
 
 
 	//END OF SHADER
@@ -233,14 +242,20 @@ x3dom.shader.DynamicShaderPicking.prototype.generateFragmentShader = function(gl
   shader += "#else\n";
   shader += " precision mediump float;\n";
   shader += "#endif\n\n";
-	
+
 	/*******************************************************************************
 	* Generate dynamic uniforms & varyings
 	********************************************************************************/
 
-    shader += "uniform float highBit;\n";
-    shader += "uniform float lowBit;\n";
+    if (pickMode != 5)
+    {
+        shader += "uniform float highBit;\n";
+        shader += "uniform float lowBit;\n";
+    }
+
     shader += "uniform float sceneSize;\n";
+    shader += "uniform vec3 from;\n";
+    
     shader += "varying vec3 worldCoord;\n";
 
     if(pickMode == 1 || pickMode == 2) {
@@ -273,6 +288,49 @@ x3dom.shader.DynamicShaderPicking.prototype.generateFragmentShader = function(gl
         shader += x3dom.shader.clipPlanes(properties.CLIPPLANES);
     }
 
+    if (pickMode == 5)
+    {
+        shader += "varying vec3 ndcPos;\n";
+
+        // See http://concord-consortium.github.io/lab/experiments/webgl-gpgpu/webgl.html
+        shader += 'float shift_right(float v, float amt) {\n\
+          v = floor(v) + 0.5;\n\
+          return floor(v / exp2(amt));\n\
+        }\n\
+        float shift_left(float v, float amt) {\n\
+          return floor(v * exp2(amt) + 0.5);\n\
+        }\n\
+        \n\
+        float mask_last(float v, float bits) {\n\
+          return mod(v, shift_left(1.0, bits));\n\
+        }\n\
+        float extract_bits(float num, float from, float to) {\n\
+          from = floor(from + 0.5);\n\
+          to = floor(to + 0.5);\n\
+          return mask_last(shift_right(num, from), to - from);\n\
+        }\n\
+        vec4 encode_float(float val) {\n\
+          if (val == 0.0)\n\
+            return vec4(0, 0, 0, 0);\n\
+          float sign = val > 0.0 ? 0.0 : 1.0;\n\
+          val = abs(val);\n\
+          float exponent = floor(log2(val));\n\
+          float biased_exponent = exponent + 127.0;\n\
+          float fraction = ((val / exp2(exponent)) - 1.0) * 8388608.0;\n\
+          \n\
+          float t = biased_exponent / 2.0;\n\
+          float last_bit_of_biased_exponent = fract(t) * 2.0;\n\
+          float remaining_bits_of_biased_exponent = floor(t);\n\
+          \n\
+          float byte4 = extract_bits(fraction, 0.0, 8.0) / 255.0;\n\
+          float byte3 = extract_bits(fraction, 8.0, 16.0) / 255.0;\n\
+          float byte2 = (last_bit_of_biased_exponent * 128.0 + extract_bits(fraction, 16.0, 23.0)) / 255.0;\n\
+          float byte1 = (sign * 128.0 + remaining_bits_of_biased_exponent) / 255.0;\n\
+          return vec4(byte4, byte3, byte2, byte1);\n\
+        }\n';
+
+    }
+	
 	/*******************************************************************************
 	* Generate main function
 	********************************************************************************/
@@ -287,7 +345,7 @@ x3dom.shader.DynamicShaderPicking.prototype.generateFragmentShader = function(gl
         shader += "vec4 color = vec4(fragColor, lowBit);\n";
     } else if(pickMode == 4) { //Picking with 32bit precision
         shader += "vec4 color = vec4(highBit, lowBit, 0.0, 0.0);\n";
-    } else {
+    } else if (pickMode != 5) {
         shader += "vec4 color = vec4(0.0, 0.0, highBit, lowBit);\n";
     }
 
@@ -309,7 +367,12 @@ x3dom.shader.DynamicShaderPicking.prototype.generateFragmentShader = function(gl
     }
 
     if(pickMode != 1 && pickMode != 2) {
-        shader += "float d = length(worldCoord) / sceneSize;\n";
+        if (pickMode == 5)
+        {
+            shader += "float d = length(worldCoord - from);\n";
+        } else {
+            shader += "float d = length(worldCoord) / sceneSize;\n";
+        }
     }
 
     if(pickMode == 0) { //Default Picking
@@ -319,7 +382,12 @@ x3dom.shader.DynamicShaderPicking.prototype.generateFragmentShader = function(gl
         shader += "color.r = d;\n";
     }
 
-    shader += "gl_FragColor = color;\n";
+    if (pickMode == 5)
+    {
+        shader += "gl_FragColor = encode_float(d);\n";
+    } else {
+        shader += "gl_FragColor = color;\n";
+    }
 
     //END OF SHADER
     shader += "}\n";

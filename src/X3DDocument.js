@@ -422,8 +422,11 @@ x3dom.X3DDocument.prototype.onMove = function (ctx, x, y, buttonState) {
         return;
     }
 
-    if (this._viewarea._scene._vf.doPickPass)
-        ctx.pickValue(this._viewarea, x, y, buttonState);
+    //if (this._viewarea._scene._vf.doPickPass)
+    //    ctx.pickValue(this._viewarea, x, y, buttonState);
+    if (this.inMeasureMode)
+        ctx.pickValue(this._viewarea, x, y, buttonState, null, null, "pos");
+
     this._viewarea.onMove(x, y, buttonState);
 };
 
@@ -463,7 +466,11 @@ x3dom.X3DDocument.prototype.onMousePress = function (ctx, x, y, buttonState) {
     // update volume only on click since expensive!
     this._viewarea._scene.updateVolume();
 
-    ctx.pickValue(this._viewarea, x, y, buttonState);
+    if (this.inMeasureMode)
+        ctx.pickValue(this._viewarea, x, y, buttonState, null, null, "pos");
+    else
+        ctx.pickValue(this._viewarea, x, y, buttonState);
+
     this._viewarea.onMousePress(x, y, buttonState);
 };
 
@@ -473,7 +480,12 @@ x3dom.X3DDocument.prototype.onMouseRelease = function (ctx, x, y, buttonState, p
     }
 
     var button = (prevButton << 8) | buttonState;   // for shadowObjectIdChanged
-    ctx.pickValue(this._viewarea, x, y, button);
+
+    if (this.inMeasureMode)
+        ctx.pickValue(this._viewarea, x, y, buttonState, null, null, "pos");
+    else
+        ctx.pickValue(this._viewarea, x, y, buttonState);
+
     this._viewarea.onMouseRelease(x, y, buttonState, prevButton);
 };
 
