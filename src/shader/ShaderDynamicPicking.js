@@ -49,8 +49,6 @@ x3dom.shader.DynamicShaderPicking.prototype.generateVertexShader = function(gl, 
     shader += "uniform vec3 from;\n";
     shader += "varying vec3 worldCoord;\n";
 
-    shader += "varying vec3 ndcPos;\n";
-
     if(pickMode == 1) { // Color Picking
         shader += "attribute vec3 color;\n";
         shader += "varying vec3 fragColor;\n";
@@ -207,7 +205,6 @@ x3dom.shader.DynamicShaderPicking.prototype.generateVertexShader = function(gl, 
     }
 
     shader += "gl_Position = modelViewProjectionMatrix * vec4(pos, 1.0);\n";
-    shader += "ndcPos = gl_Position.xyz / gl_Position.w;\n";
 
     if (pickMode != 5)
     {
@@ -242,7 +239,7 @@ x3dom.shader.DynamicShaderPicking.prototype.generateFragmentShader = function(gl
   shader += "#else\n";
   shader += " precision mediump float;\n";
   shader += "#endif\n\n";
-
+	
 	/*******************************************************************************
 	* Generate dynamic uniforms & varyings
 	********************************************************************************/
@@ -254,7 +251,11 @@ x3dom.shader.DynamicShaderPicking.prototype.generateFragmentShader = function(gl
     }
 
     shader += "uniform float sceneSize;\n";
-    shader += "uniform vec3 from;\n";
+
+    if (pickMode == 5)
+    {
+   	 shader += "uniform vec3 from;\n";
+    }
     
     shader += "varying vec3 worldCoord;\n";
 

@@ -2890,11 +2890,8 @@ x3dom.gfx_webgl = (function () {
             case "pos":      pickMode = 5; break;
         }
 
-
         // ViewMatrix and ViewProjectionMatrix
         var mat_view, mat_scene;
-
-
         mat_view = viewMat ? viewMat : viewarea.getViewMatrix();
         mat_scene = sceneMat ? sceneMat : viewarea._last_mat_scene;
 
@@ -2930,7 +2927,6 @@ x3dom.gfx_webgl = (function () {
 
         // for deriving shadow ids together with shape ids
         var baseID = x3dom.nodeTypes.Shape.objectID + 2;
-
 
         // render to texture for reading pixel values
         this.renderPickingPass(gl, scene, mat_view, mat_scene, from, sceneSize, pickMode, x, y, 2, 2);
@@ -3057,6 +3053,9 @@ x3dom.gfx_webgl = (function () {
                 up = up.subtract(pickPos).normalize();
 
                 pickNorm = right.cross(up).normalize();
+
+                objId = baseID;
+                shapeId = 1;
             } else {
                 pickPos.x = pixelData[index    ];
                 pickPos.y = pixelData[index + 1];
@@ -3097,49 +3096,48 @@ x3dom.gfx_webgl = (function () {
                     var mp, multiPart;
                     var pRatio = this.x3dElem.runtime.canvas.devicePixelRatio;
 		
-		    var isMultiPart = false;
+                    var isMultiPart = false;
 
-		    for (var i=0; i < scene._multiPartMap.multiParts.length; i++)
-		    {
-			    isMultiPart = isMultiPart || scene._multiPartMap.multiParts[i]._xmlNode.contains(viewarea._pickingInfo.pickObj._xmlNode);
-
-			    if (isMultiPart)
-			    {
-				    break;
-			    }
-		    }
-
-		    if (isMultiPart)
-		    {
-
-                    //Find related MultiPart
-                    for (mp=0; mp<scene._multiPartMap.multiParts.length; mp++)
+                    for (var i=0; i < scene._multiPartMap.multiParts.length; i++)
                     {
-                        multiPart = scene._multiPartMap.multiParts[mp];
-                        if (objId >= multiPart.getMinID() && objId <= multiPart.getMaxID())
+                        isMultiPart = isMultiPart || scene._multiPartMap.multiParts[i]._xmlNode.contains(viewarea._pickingInfo.pickObj._xmlNode);
+
+                        if (isMultiPart)
                         {
-                            hitObject = multiPart._xmlNode;
-
-							viewarea._pickingInfo.pickObj = multiPart;
-
-                            event = {
-                                target: multiPart._xmlNode,
-                                button: button, mouseup: ((buttonState >>> 8) > 0),
-                                layerX: x / pRatio, layerY: y / pRatio,
-                                pickedId: objId,
-                                worldX: pickPos.x, worldY: pickPos.y, worldZ: pickPos.z,
-                                normalX: pickNorm.x, normalY: pickNorm.y, normalZ: pickNorm.z,
-                                hitPnt: pickPos.toGL(),
-                                hitObject: hitObject,
-                                cancelBubble: false,
-                                stopPropagation: function () { this.cancelBubble = true; },
-                                preventDefault:  function () { this.cancelBubble = true; }
-                            };
-
-                            multiPart.handleEvents(event);
+                            break;
                         }
-		    }
-		    }
+                    }
+
+                    if (isMultiPart)
+                    {
+                        //Find related MultiPart
+                        for (mp=0; mp<scene._multiPartMap.multiParts.length; mp++)
+                        {
+                            multiPart = scene._multiPartMap.multiParts[mp];
+                            if (objId >= multiPart.getMinID() && objId <= multiPart.getMaxID())
+                            {
+                                hitObject = multiPart._xmlNode;
+
+                                viewarea._pickingInfo.pickObj = multiPart;
+
+                                event = {
+                                    target: multiPart._xmlNode,
+                                    button: button, mouseup: ((buttonState >>> 8) > 0),
+                                    layerX: x / pRatio, layerY: y / pRatio,
+                                    pickedId: objId,
+                                    worldX: pickPos.x, worldY: pickPos.y, worldZ: pickPos.z,
+                                    normalX: pickNorm.x, normalY: pickNorm.y, normalZ: pickNorm.z,
+                                    hitPnt: pickPos.toGL(),
+                                    hitObject: hitObject,
+                                    cancelBubble: false,
+                                    stopPropagation: function () { this.cancelBubble = true; },
+                                    preventDefault:  function () { this.cancelBubble = true; }
+                                };
+
+                                multiPart.handleEvents(event);
+                            }
+                        }
+		            }
                 }
 
                 shadowObjectIdChanged = (viewarea._pickingInfo.shadowObjectId != objId);
