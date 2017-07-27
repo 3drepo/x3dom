@@ -3024,17 +3024,18 @@ x3dom.gfx_webgl = (function () {
                 var width = viewarea._doc.ctx.x3dElem.runtime.canvas.canvas.width;
                 var height = viewarea._doc.ctx.x3dElem.runtime.canvas.canvas.height;
 
-                //console.log("DIST: " + dist);
-
                 line = viewarea.calcViewRay(actualX, actualY, cctowc);
 
                 var a = ((dist + 1.0) * 0.5) * width;
-                //console.log("A: " + a);
-
                 var b = (1.0 - ((dist + 1.0) * 0.5)) * height;
-                //console.log("B: " + b);
 
                 pickPos = from.add(line.dir.multiply(dist));
+
+                if (dist !== 0)
+                {
+                    objId = baseID;
+                    shapeId = 1;
+                }
 
                 index = 1;      // get right pixel
                 dist = floatData[index];
@@ -3054,8 +3055,6 @@ x3dom.gfx_webgl = (function () {
 
                 pickNorm = right.cross(up).normalize();
 
-                objId = baseID;
-                shapeId = 1;
             } else {
                 pickPos.x = pixelData[index    ];
                 pickPos.y = pixelData[index + 1];
@@ -3095,49 +3094,48 @@ x3dom.gfx_webgl = (function () {
                 if (scene._multiPartMap) {
                     var mp, multiPart;
                     var pRatio = this.x3dElem.runtime.canvas.devicePixelRatio;
-		
-                    var isMultiPart = false;
 
-                    for (var i=0; i < scene._multiPartMap.multiParts.length; i++)
+                    //Find related MultiPart
+                    for (mp=0; mp<scene._multiPartMap.multiParts.length; mp++)
                     {
-                        isMultiPart = isMultiPart || scene._multiPartMap.multiParts[i]._xmlNode.contains(viewarea._pickingInfo.pickObj._xmlNode);
-
-                        if (isMultiPart)
+                        multiPart = scene._multiPartMap.multiParts[mp];
+                        if (objId >= multiPart._minId && objId <= multiPart._maxId)
                         {
-                            break;
+                            hitObject = multiPart._xmlNode;
+
+							viewarea._pickingInfo.pickObj = multiPart;
+
+                            event = {
+                                target: multiPart._xmlNode,
+                                button: button, mouseup: ((buttonState >>> 8) > 0),
+                                layerX: x / pRatio, layerY: y / pRatio,
+                                pickedId: objId,
+                                worldX: pickPos.x, worldY: pickPos.y, worldZ: pickPos.z,
+                                normalX: pickNorm.x, normalY: pickNorm.y, normalZ: pickNorm.z,
+                                hitPnt: pickPos.toGL(),
+                                hitObject: hitObject,
+                                cancelBubble: false,
+                                stopPropagation: function () { this.cancelBubble = true; },
+                                preventDefault:  function () { this.cancelBubble = true; }
+                            };
+
+                            multiPart.handleEvents(event);
+                        }
+                        else
+                        {
+                            event = {
+                                target: multiPart._xmlNode,
+                                button: button, mouseup: ((buttonState >>> 8) > 0),
+                                layerX: x / pRatio, layerY: y / pRatio,
+                                pickedId: -1,
+                                cancelBubble: false,
+                                stopPropagation: function () { this.cancelBubble = true; },
+                                preventDefault:  function () { this.cancelBubble = true; }
+                            };
+
+                            multiPart.handleEvents(event);
                         }
                     }
-
-                    if (isMultiPart)
-                    {
-                        //Find related MultiPart
-                        for (mp=0; mp<scene._multiPartMap.multiParts.length; mp++)
-                        {
-                            multiPart = scene._multiPartMap.multiParts[mp];
-                            if (objId >= multiPart.getMinID() && objId <= multiPart.getMaxID())
-                            {
-                                hitObject = multiPart._xmlNode;
-
-                                viewarea._pickingInfo.pickObj = multiPart;
-
-                                event = {
-                                    target: multiPart._xmlNode,
-                                    button: button, mouseup: ((buttonState >>> 8) > 0),
-                                    layerX: x / pRatio, layerY: y / pRatio,
-                                    pickedId: objId,
-                                    worldX: pickPos.x, worldY: pickPos.y, worldZ: pickPos.z,
-                                    normalX: pickNorm.x, normalY: pickNorm.y, normalZ: pickNorm.z,
-                                    hitPnt: pickPos.toGL(),
-                                    hitObject: hitObject,
-                                    cancelBubble: false,
-                                    stopPropagation: function () { this.cancelBubble = true; },
-                                    preventDefault:  function () { this.cancelBubble = true; }
-                                };
-
-                                multiPart.handleEvents(event);
-                            }
-                        }
-		            }
                 }
 
                 shadowObjectIdChanged = (viewarea._pickingInfo.shadowObjectId != objId);
@@ -3341,8 +3339,8 @@ x3dom.gfx_webgl = (function () {
                         emissiveMap = multiPart._inlineNamespace.defMap["MultiMaterial_EmissiveMap"];
                         specularMap = multiPart._inlineNamespace.defMap["MultiMaterial_SpecularMap"];
                         visibilityMap = multiPart._inlineNamespace.defMap["MultiMaterial_VisibilityMap"];
-                        if (objId >= multiPart.getMinID() && objId <= multiPart.getMaxID()) {
-                            partID = multiPart._idMap.mapping[objId - multiPart.getMinID()].name;
+                        if (objId >= multiPart._minId && objId <= multiPart._maxId) {
+                            partID = multiPart._idMap.mapping[objId - multiPart._minId].name;
                             hitObject = new x3dom.Parts(multiPart, [objId], colorMap, emissiveMap, specularMap, visibilityMap);
 
                             pickedNode = {"partID": partID, "part":hitObject};

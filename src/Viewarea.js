@@ -618,8 +618,6 @@ x3dom.Viewarea.prototype.navigateTo = function(timeStamp)
 			}
 		}
 
-		console.log("UP: " + up.toGL());
-
 		if(up.y < 0.0)
 		{
 			debugger;
@@ -1109,15 +1107,11 @@ x3dom.Viewarea.prototype.calcViewRay = function(x, y, mat)
     
     var from = this.getViewMatrix().inverse().e3();
 
-    //console.log("X: " + x + " Y: " + y);
- 
     x = x / width;
     y = y / height;
 
     var rx = x * 2.0 - 1.0;
     var ry = (1 - y) * 2.0 - 1.0;
-
-    //console.log("RX: " + rx + " RY: " + ry + "W: " + width + " H: " + height);
 
     var at = cctowc.multFullMatrixPnt(new x3dom.fields.SFVec3f(rx, ry,  -1));
     var dir = at.subtract(from).normalize();

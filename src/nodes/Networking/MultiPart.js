@@ -134,16 +134,6 @@ x3dom.registerNodeType(
                 }
             },
 
-            getMinID: function ()
-            {
-                return this._minId; //+ x3dom.nodeTypes.Shape.objectID;
-            },
-
-            getMaxID: function ()
-            {
-                return this._maxId; // + x3dom.nodeTypes.Shape.objectID;
-            },
-
             getVolume: function ()
             {
                 var vol = this._graph.volume;
@@ -191,8 +181,8 @@ x3dom.registerNodeType(
                     }
 
                     if (e.pickedId != -1) {
-                        e.part = new x3dom.Parts(this, [e.pickedId - this.getMinID()], colorMap, emissiveMap, specularMap, visibilityMap);
-                        e.partID = this._idMap.mapping[e.pickedId - this.getMinID()].name;
+                        e.part = new x3dom.Parts(this, [e.pickedId - this._minId], colorMap, emissiveMap, specularMap, visibilityMap);
+                        e.partID = this._idMap.mapping[e.pickedId - this._minId].name;
 
                         //fire mousemove event
                         e.type = "mousemove";
@@ -229,14 +219,14 @@ x3dom.registerNodeType(
                         //If the picked id has changed we enter+leave a part
                         if (e.pickedId != this._lastId) {
                             if (this._lastId != -1) {
-                                e.part = new x3dom.Parts(this, [this._lastId - this.getMinID()], colorMap, emissiveMap, specularMap, visibilityMap);
-                                e.partID = this._idMap.mapping[this._lastId - this.getMinID()].name;
+                                e.part = new x3dom.Parts(this, [this._lastId - this._minId], colorMap, emissiveMap, specularMap, visibilityMap);
+                                e.partID = this._idMap.mapping[this._lastId - this._minId].name;
                                 e.type = "mouseleave";
                                 this.callEvtHandler("onmouseleave", e);
                             }
 
-                            e.part = new x3dom.Parts(this, [e.pickedId - this.getMinID()], colorMap, emissiveMap, specularMap, visibilityMap);
-                            e.partID = this._idMap.mapping[e.pickedId - this.getMinID()].name;
+                            e.part = new x3dom.Parts(this, [e.pickedId - this._minId], colorMap, emissiveMap, specularMap, visibilityMap);
+                            e.partID = this._idMap.mapping[e.pickedId - this._minId].name;
                             e.type = "mouseenter";
                             this.callEvtHandler("onmouseenter", e);
                             this._lastId = e.pickedId;
@@ -245,8 +235,8 @@ x3dom.registerNodeType(
                         this._lastId = e.pickedId;
                     }
                     else if (this._lastId != -1) {
-                        e.part = new x3dom.Parts(this, [this._lastId - this.getMinID()], colorMap, emissiveMap, specularMap, visibilityMap);
-                        e.partID = this._idMap.mapping[this._lastId - this.getMinID()].name;
+                        e.part = new x3dom.Parts(this, [this._lastId - this._minId], colorMap, emissiveMap, specularMap, visibilityMap);
+                        e.partID = this._idMap.mapping[this._lastId - this._minId].name;
                         e.type = "mouseout";
                         this.callEvtHandler("onmouseout", e);
                         e.type = "mouseleave";

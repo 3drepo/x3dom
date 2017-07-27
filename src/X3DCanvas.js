@@ -249,8 +249,6 @@ x3dom.X3DCanvas = function(x3dElem, canvasIdx)
 
                 this.mouse_drag_x = x;
                 this.mouse_drag_y = y;
-
-                //console.log("MX: " + x + " MY: " + y);
                 
                 this.parent.doc.onMousePress(that.gl, this.mouse_drag_x, this.mouse_drag_y, this.mouse_button);
                 this.parent.doc.needRender = true;
@@ -327,8 +325,6 @@ x3dom.X3DCanvas = function(x3dElem, canvasIdx)
 
                     this.mouse_drag_x = x;
                     this.mouse_drag_y = y;
-
-                    console.log("MX: " + x + " MY: " + y);
 
                     if (this.mouse_dragging) {
 
