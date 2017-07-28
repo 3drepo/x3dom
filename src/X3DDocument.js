@@ -483,9 +483,9 @@ x3dom.X3DDocument.prototype.onMouseRelease = function (ctx, x, y, buttonState, p
     var button = (prevButton << 8) | buttonState;   // for shadowObjectIdChanged
 
     if (this.inMeasureMode)
-        ctx.pickValue(this._viewarea, x, y, buttonState, null, null, "pos");
+        ctx.pickValue(this._viewarea, x, y, button, null, null, "pos");
     else
-        ctx.pickValue(this._viewarea, x, y, buttonState);
+        ctx.pickValue(this._viewarea, x, y, button);
 
     this._viewarea.onMouseRelease(x, y, buttonState, prevButton);
 };
