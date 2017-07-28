@@ -229,7 +229,7 @@ x3dom.registerNodeType(
                     }
 
                     var zNearLimit = zfar / this._zRatio;
-                    znear = Math.max(znear, Math.max(x3dom.fields.Eps, zNearLimit));
+                    znear = Math.max(x3dom.fields.Eps, zNearLimit);
 
                     if (zfar > this._vf.zNear && this._vf.zNear > 0)
                         znear = this._vf.zNear;
